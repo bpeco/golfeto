@@ -1,4 +1,4 @@
-# Golfeto
+# Galf
 
 Anotador de golf para un grupo de amigos: cada uno registra sus rondas (a mano o subiendo la foto de la tarjeta de papel) y la app calcula y grafica el hándicap. Términos en español rioplatense; nombre en código entre paréntesis.
 
@@ -35,11 +35,28 @@ _Avoid_: entregar, cerrar, confirmar
 **Foto de tarjeta** (`ScorecardPhoto`):
 Imagen de la tarjeta de papel de una partida. Pertenece a la partida (una hoja suele tener a todos los jugadores), no a una tarjeta individual.
 
+**Tarjeta histórica** (`LegacyScorecard`):
+Tarjeta cargada solo con su total de golpes (sin detalle por hoyo), importada de registros previos a la app. Cuenta para el hándicap sin ajuste por hoyo.
+
+**Hoyo no terminado** (`PickedUp`):
+Hoyo en el que el golfista levantó la pelota sin embocar. No tiene golpes; para el hándicap vale net double bogey.
+_Avoid_: X, hoyo en blanco, sin score
+
+**Vuelta** (`Loop`):
+Cada pasada por los 9 hoyos de una cancha de 9 dentro de una partida de 18. Una partida de 18 en cancha de 9 tiene dos vueltas desde el mismo tee.
+
+**Invitado** (`Guest`):
+Persona sin cuenta que participa de una partida con nombre y hándicap declarado. No acumula historial; puede vincularse a un golfista si se registra después.
+
 ### Cancha
 
 **Cancha** (`Course`):
 Un recorrido de golf identificado por club y nombre (un club puede tener más de una cancha).
 _Avoid_: campo, club, course
+
+**Versión de cancha** (`CourseVersion`):
+El estado de una cancha (hoyos, pares, hándicaps de hoyo, tees, distancias, obstáculos) vigente durante un período. Una partida queda atada a la versión vigente en su fecha.
+_Avoid_: edición, revisión
 
 **Tee** (`TeeSet`):
 Conjunto de salidas de una cancha identificado por color (blancas, azules, amarillas, rojas), con su propio Course Rating, Slope y distancias por hoyo.
@@ -55,8 +72,12 @@ _Avoid_: índice, dificultad
 ### Hándicap
 
 **Hándicap Index** (`HandicapIndex`):
-El hándicap del golfista según el WHS: promedio de los mejores 8 diferenciales de sus últimas 20 tarjetas firmadas.
+El hándicap del golfista según el WHS: promedio de los mejores 8 diferenciales de sus últimas 20 tarjetas firmadas. Se recalcula al instante con cada firma.
 _Avoid_: hándicap (a secas), índice
+
+**Hándicap declarado** (`DeclaredHandicap`):
+Índice que el golfista carga a mano (típicamente el oficial de la AAG). Se usa en lugar del Hándicap Index mientras la app no tenga tarjetas suficientes para calcular uno.
+_Avoid_: hándicap oficial, hándicap manual
 
 **Hándicap de cancha** (`CourseHandicap`):
 Golpes que recibe un golfista en una partida concreta, derivado de su Hándicap Index y del tee jugado.
