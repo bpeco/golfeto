@@ -1,0 +1,3 @@
+# Las tarjetas históricas (solo total) cuentan para el hándicap
+
+El grupo tiene ~35 rondas anotadas en WhatsApp solo como totales, sin hoyo por hoyo, sin fecha exacta. El WHS estricto exige el detalle por hoyo (net double bogey) y CR/Slope del tee jugado. Decidimos importarlas como `LegacyScorecard` con cancha y tee asignados (Miraflores blancas salvo indicación), fecha aproximada secuencial, y que cuenten para el Hándicap Index sin el ajuste por hoyo, porque un hándicap que arranca con historia real vale más para el grupo que uno estrictamente conforme que arranca en cero. Quedan marcadas como históricas para poder excluirlas del cálculo si algún día se quiere el modo estricto.
