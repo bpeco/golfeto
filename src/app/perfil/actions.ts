@@ -33,3 +33,12 @@ export async function updateDisplayName(formData: FormData) {
   revalidatePath("/");
   redirect("/perfil?ok=1");
 }
+
+export async function claimGuest(guestId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("claim_guest", { p_guest_id: guestId });
+  if (error) return { error: error.message };
+  revalidatePath("/");
+  revalidatePath("/perfil");
+  return {};
+}

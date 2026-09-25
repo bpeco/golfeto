@@ -3,11 +3,26 @@ import { Button, Card, ErrorBanner, Field, fmtIndex, inputClass } from "@/compon
 import { requirePlayer } from "@/lib/db/player";
 import { getPlayerHandicap } from "@/lib/db/handicap";
 import { saveDeclaredHandicap, updateDisplayName } from "./actions";
+import { ClaimGuest } from "./claim-guest";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; ok?: string }> }) {
   const { error, ok } = await searchParams;
   const me = await requirePlayer();
-  const h = await getPlayerHandicap(me.id);
+  const supabase = await createClient();
+  const [h, { data: guestRows }] = await Promise.all([
+    getPlayerHandicap(me.id),
+    supabase
+      .from("players")
+      .select("id, display_name, scorecards!scorecards_player_id_fkey(count)")
+      .is("user_id", null)
+      .is("deleted_at", null)
+      .is("merged_into_player_id", null)
+      .order("display_name"),
+  ]);
+  const guests = (guestRows ?? [])
+    .map((g) => ({ id: g.id, name: g.display_name, cards: g.scorecards[0]?.count ?? 0 }))
+    .filter((g) => g.cards > 0);
 
   return (
     <Shell title="Perfil">
@@ -33,6 +48,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         </Field>
         <Button type="submit" variant="secondary">Guardar hándicap</Button>
       </form>
+
+      <ClaimGuest guests={guests} />
 
       <form action={updateDisplayName} className="mt-6 space-y-3">
         <Field label="Nombre">

@@ -5,6 +5,8 @@ import { Card, Empty, LinkButton, fmtIndex, formatDate } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
 import { getHandicapsFor } from "@/lib/db/handicap";
+import { getPlayerStats } from "@/lib/db/stats";
+import { IndexChart } from "@/components/index-chart";
 import { InvitePanel } from "./invite-panel";
 import { MemberActions } from "./member-actions";
 
@@ -26,6 +28,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
   const isAdmin = myMembership?.role === "admin";
   const playerIds = members.map((m) => m.player!.id);
   const handicaps = await getHandicapsFor(playerIds);
+  const stats = (await Promise.all(playerIds.map((pid) => getPlayerStats(pid)))).filter((x): x is NonNullable<typeof x> => !!x);
 
   const { data: rounds } = await supabase
     .from("rounds")
@@ -68,6 +71,48 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
               </div>
             );
           })}
+        </Card>
+      </section>
+
+      <section className="mt-6 space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Comparación</h2>
+        <IndexChart
+          title="Evolución del Hándicap Index"
+          series={[...stats]
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((st) => ({
+              id: st.playerId,
+              name: st.name,
+              points: st.handicap.history.filter((p) => p.handicapIndex != null).map((p) => ({ date: p.playedOn, value: p.handicapIndex! })),
+            }))}
+        />
+        <Card className="overflow-x-auto p-0">
+          <table className="w-full text-sm">
+            <thead className="text-xs text-muted">
+              <tr>
+                <th className="px-3 py-2 text-left">Golfista</th>
+                <th className="px-2 py-2 text-right">Hcp</th>
+                <th className="px-2 py-2 text-right">Prom.</th>
+                <th className="px-2 py-2 text-right">Últ. 5</th>
+                <th className="px-2 py-2 text-right">Mejor</th>
+                <th className="px-2 py-2 text-right">Tarj.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...stats]
+                .sort((a, b) => (a.handicap.effective ?? 99) - (b.handicap.effective ?? 99))
+                .map((st) => (
+                  <tr key={st.playerId} className="border-t border-border">
+                    <td className="px-3 py-2"><Link href={`/golfistas/${st.playerId}`}>{st.name}</Link></td>
+                    <td className="px-2 py-2 text-right font-semibold tabular-nums">{fmtIndex(st.handicap.effective)}</td>
+                    <td className="px-2 py-2 text-right tabular-nums">{st.avgGross ?? "—"}</td>
+                    <td className="px-2 py-2 text-right tabular-nums">{st.last5AvgGross ?? "—"}</td>
+                    <td className="px-2 py-2 text-right tabular-nums">{st.bestGross ?? "—"}</td>
+                    <td className="px-2 py-2 text-right tabular-nums text-muted">{st.cards.length}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         </Card>
       </section>
 

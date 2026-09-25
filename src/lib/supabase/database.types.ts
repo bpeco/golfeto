@@ -1378,6 +1378,7 @@ export type Database = {
       attach_append_only: { Args: { tbl: unknown }; Returns: undefined }
       attach_audit: { Args: { tbl: unknown }; Returns: undefined }
       can_view_round: { Args: { r: string }; Returns: boolean }
+      claim_guest: { Args: { p_guest_id: string }; Returns: undefined }
       create_group: {
         Args: { p_invite_code?: string; p_name: string }
         Returns: string
