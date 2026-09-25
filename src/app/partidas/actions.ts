@@ -138,7 +138,8 @@ export async function signScorecard(roundId: string, scorecardId: string): Promi
         pickedUp: sc?.pickedUp ?? false,
       };
     });
-    const ags = adjustedGrossScore(results, ch, rating.holesInRound);
+    // Sin ningún índice (ni calculado ni declarado) no hay net double bogey: el tope es par + 5.
+    const ags = adjustedGrossScore(results, index == null ? null : ch, rating.holesInRound);
     if (!ags.acceptable) {
       return { error: `Faltan hoyos: hay ${ags.holesPlayed} cargados y se necesitan al menos ${rating.holesInRound === 18 ? 10 : 9}.` };
     }
