@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type CourseSummary = {
@@ -63,7 +64,7 @@ export type CourseDetail = {
 };
 
 /** Cancha con la versión vigente en `asOf` (hoy por defecto), hoyos, tees y distancias. */
-export async function getCourse(courseId: string, asOf?: string): Promise<CourseDetail | null> {
+export const getCourse = cache(async (courseId: string, asOf?: string): Promise<CourseDetail | null> => {
   const supabase = await createClient();
   const date = asOf ?? new Date().toISOString().slice(0, 10);
   const { data: c } = await supabase
@@ -104,4 +105,4 @@ export async function getCourse(courseId: string, asOf?: string): Promise<Course
         }
       : null,
   };
-}
+});

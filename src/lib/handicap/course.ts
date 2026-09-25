@@ -75,6 +75,11 @@ export type AdjustedGrossResult = {
   acceptable: boolean;
 };
 
+/** Regla 5.1b: hoyos jugados mínimos para que una tarjeta sea aceptable (10 de 18, 9 de 9). */
+export function minimumHolesToSign(holesInRound: number) {
+  return holesInRound === 18 ? 10 : 9;
+}
+
 /** Regla 3.1b: hasta tener Hándicap Index, el máximo por hoyo es par + 5. */
 export function maxHoleScoreWithoutIndex(par: number): number {
   return par + 5;
@@ -110,8 +115,7 @@ export function adjustedGrossScore(
     }
   }
 
-  const minimum = holesInRound === 18 ? 10 : 9;
-  return { adjustedGross, gross, holesPlayed, acceptable: holesPlayed >= minimum };
+  return { adjustedGross, gross, holesPlayed, acceptable: holesPlayed >= minimumHolesToSign(holesInRound) };
 }
 
 /** Regla 5.1a. (113 / Slope) × (Score ajustado − Course Rating − PCC), a un decimal. */

@@ -2,7 +2,7 @@
 
 Anotador de golf para un grupo de amigos (Next.js + Supabase + Vercel + Claude visión).
 
-**Al arrancar una sesión, leer en este orden:** `docs/handoff.md` (infra y estado operativo), `docs/roadmap.md` (hecho / pendiente), `CONTEXT.md` (vocabulario obligatorio), `docs/adr/` (decisiones), `docs/db-design.md` (convenciones de base de datos). Al cerrar una sesión, actualizar `docs/roadmap.md` y, si cambió la infraestructura, `docs/handoff.md`.
+**Al arrancar una sesión, leer en este orden:** `docs/handoff.md` (infra y estado operativo), `docs/roadmap.md` (hecho / pendiente), `CONTEXT.md` (vocabulario obligatorio), `docs/adr/` (decisiones), `docs/db-design.md` (convenciones de base de datos). Antes de tocar UI: `PRODUCT.md` (para quién y en qué condiciones) y `DESIGN.md` (lenguaje visual, tokens, primitivas). Al cerrar una sesión, actualizar `docs/roadmap.md` y, si cambió la infraestructura, `docs/handoff.md`.
 
 ## Agent skills
 

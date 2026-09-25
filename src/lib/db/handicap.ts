@@ -31,6 +31,7 @@ export async function getPlayerHandicap(playerId: string): Promise<PlayerHandica
       .select("value, valid_from")
       .eq("player_id", playerId)
       .order("valid_from", { ascending: false })
+      .order("created_at", { ascending: false }) // dos cargas el mismo día: gana la última
       .limit(1),
   ]);
 

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayerHandicap, type PlayerHandicap } from "./handicap";
 
@@ -25,7 +26,8 @@ export type PlayerStats = {
   last5AvgGross: number | null;
 };
 
-export async function getPlayerStats(playerId: string): Promise<PlayerStats | null> {
+/** Cacheada por request (la página del golfista y su título, el grupo). */
+export const getPlayerStats = cache(async (playerId: string): Promise<PlayerStats | null> => {
   const supabase = await createClient();
   const [{ data: player }, { data: cards }, handicap] = await Promise.all([
     supabase.from("players").select("id, display_name").eq("id", playerId).maybeSingle(),
@@ -68,7 +70,7 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats | nu
     avgToPar: avg(signed.map((c) => c.gross - c.par)),
     last5AvgGross: avg(signed.slice(0, 5).map((c) => c.gross)),
   };
-}
+});
 
 export type HeadToHead = {
   otherId: string;
