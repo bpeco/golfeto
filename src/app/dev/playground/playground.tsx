@@ -41,7 +41,7 @@ import { estimateSignature } from "@/lib/sign-estimate";
 import { SignSheet } from "@/app/(app)/partidas/[id]/sign-sheet";
 import { archivo, bigShoulders, publicSans } from "./fonts";
 import { ME_ID, courseDetail, courseHandicaps, groups, players, recentRounds, round } from "./fixtures";
-import { InicioVariant, PartidaVariant } from "./variants";
+import { GroupScreen, InicioVariant, PartidaVariant } from "./variants";
 
 type Variant = "A" | "B" | "C";
 const VARIANTS: { key: Variant; name: string }[] = [
@@ -63,6 +63,7 @@ const SECTIONS = [
   ["tarjeta", "Tarjeta"],
   ["overlays", "Hojas y menús"],
   ["cabecera", "Cabecera y barra"],
+  ["pantalla-grupo", "Pantalla: Grupo"],
   ["variante-partida", "Variante: Partida"],
   ["variante-inicio", "Variante: Inicio"],
 ] as const;
@@ -119,6 +120,9 @@ export function Playground({ variant }: { variant: Variant }) {
       </Shot>
       <Shot id="cabecera" title="Cabecera y barra de pestañas">
         <Chrome />
+      </Shot>
+      <Shot id="pantalla-grupo" title="Pantalla: Grupo">
+        <GroupScreen />
       </Shot>
       <Shot id="variante-partida" title={`Partida — variante ${variant}`}>
         <PartidaVariant variant={variant} />

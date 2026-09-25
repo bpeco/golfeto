@@ -8,18 +8,13 @@
  * Se borran B y C cuando el dueño confirme la Puerta 1 (ver DESIGN.md).
  */
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Ellipsis, Plus, TrendingDown } from "lucide-react";
-import { Board, BoardLabel } from "@/components/ui/board";
+import { ChevronLeft, ChevronRight, Ellipsis, Plus } from "lucide-react";
 import { BoardNumber } from "@/components/ui/board-number";
 import { Button } from "@/components/ui/button";
 import { Initials } from "@/components/ui/initials";
 import { Leaderboard } from "@/components/ui/leaderboard";
-import { List, ListRow } from "@/components/ui/list";
-import { Notice } from "@/components/ui/notice";
-import { RoundRow } from "@/components/ui/round-row";
 import { ScoreMark } from "@/components/ui/score-mark";
 import { ScorecardGrid } from "@/components/ui/scorecard-grid";
-import { Section } from "@/components/ui/section";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Stepper } from "@/components/ui/stepper";
 import { StrokeDots } from "@/components/ui/stroke-dots";
@@ -29,6 +24,8 @@ import { strokesOnHole } from "@/lib/handicap/course";
 import type { HoleScore } from "@/lib/scorecard-totals";
 import { fmtDecimal, fmtIndex, formatDate } from "@/lib/format";
 import { RoundScoring, type ScoringCard } from "@/app/(app)/partidas/[id]/round-scoring";
+import { HomeView } from "@/app/(app)/home-view";
+import { GroupView } from "@/app/(app)/grupos/[id]/group-view";
 import { ME_ID, courseHandicaps, groups, players, recentRounds, round } from "./fixtures";
 
 type Scores = Record<string, Record<number, HoleScore>>;
@@ -228,42 +225,16 @@ export function InicioVariant({ variant }: { variant: "A" | "B" | "C" }) {
 }
 
 function InicioA() {
+  const indexed = me.handicap.history.filter((p) => p.handicapIndex != null);
   return (
-    <div>
-      <p className="mb-3 text-xl font-semibold">Hola, {me.name}</p>
-      <Board>
-        <BoardLabel>Hándicap Index</BoardLabel>
-        <div className="mt-1 flex items-end justify-between gap-3">
-          <BoardNumber value={me.handicap.effective} kind="index" size="xl" animate />
-          {myDelta != null && (
-            <span className="mb-2 inline-flex items-center gap-1 text-base font-semibold text-score-under">
-              <TrendingDown aria-hidden className="size-5" /> {fmtDecimal(myDelta)}
-            </span>
-          )}
-        </div>
-        <BoardLabel className="mt-2">{me.handicap.signedCount} tarjetas firmadas</BoardLabel>
-      </Board>
-      <Button size="lg" className="mt-4 w-full">
-        <Plus /> Nueva partida
-      </Button>
-      <Notice tone="warn" className="mt-4" title="Tu tarjeta de Miraflores está sin firmar" action={<Button size="sm" variant="secondary">Ir a firmar</Button>}>
-        12 sep, 11 hoyos cargados.
-      </Notice>
-      <Section title="Grupos" action={<a className="text-primary">Nuevo</a>} className="mt-6">
-        <List>
-          {groups.map((g) => (
-            <ListRow key={g.id} href="#" title={g.name} trailing={<span className="text-sm text-muted-foreground">{g.members} golfistas</span>} />
-          ))}
-        </List>
-      </Section>
-      <Section title="Últimas partidas" action={<a className="text-primary">Ver todas</a>}>
-        <ul className="divide-y divide-border border-y border-border">
-          {recentRounds.map((r) => (
-            <RoundRow key={r.id} round={r} meId={ME_ID} />
-          ))}
-        </ul>
-      </Section>
-    </div>
+    <HomeView
+      meId={ME_ID}
+      firstName={me.name}
+      handicap={{ effective: me.handicap.effective, source: me.handicap.source, signedCount: me.handicap.signedCount, previous: indexed.at(-2)?.handicapIndex ?? null }}
+      groups={groups.map((g) => ({ id: g.id, name: g.name, memberCount: g.members }))}
+      rounds={recentRounds}
+      pending={{ roundId: round.id, courseName: "Miraflores", playedOn: round.playedOn, dateApproximate: false, holes: 12 }}
+    />
   );
 }
 
@@ -324,5 +295,46 @@ function InicioC() {
       </Button>
       <p className="mt-4 text-sm text-muted-foreground">C: todo papel; el índice es una fila más de la tarjeta.</p>
     </div>
+  );
+}
+
+// ——— Pantallas reales con datos de mentira ———
+
+export function GroupScreen() {
+  const series = players.map((p) => ({
+    id: p.id,
+    name: p.name,
+    points: p.handicap.history.filter((h) => h.handicapIndex != null).map((h) => ({ date: h.playedOn, value: h.handicapIndex! })),
+  }));
+  return (
+    <GroupView
+      group={{ id: "group-sabado", name: "Los del sábado", inviteCode: "SABADO26" }}
+      meId={ME_ID}
+      isAdmin
+      members={players.map((p, i) => ({ memberId: `m-${p.id}`, playerId: p.id, name: p.name, role: i === 1 ? "admin" : "member" }))}
+      leaderboard={players.map((p) => {
+        const h = p.handicap.history.filter((x) => x.handicapIndex != null);
+        return {
+          playerId: p.id,
+          name: p.name,
+          href: "#",
+          value: p.handicap.effective,
+          source: p.handicap.source,
+          delta: p.handicap.source === "calculado" && h.length >= 2 ? h.at(-1)!.handicapIndex! - h.at(-2)!.handicapIndex! : null,
+          isMe: p.id === ME_ID,
+        };
+      })}
+      series={series}
+      comparison={players.map((p, i) => ({
+        playerId: p.id,
+        name: p.name,
+        index: p.handicap.effective,
+        avgGross: 88 + i * 4,
+        last5AvgGross: 87 + i * 4,
+        bestGross: 82 + i * 3,
+        cards: p.handicap.signedCount,
+      }))}
+      rounds={recentRounds}
+    />
   );
 }
