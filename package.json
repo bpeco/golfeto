@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "screenshots": "node scripts/screenshots.mjs",
+    "bundle": "node scripts/bundle-size.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
@@ -27,6 +29,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
+    "playwright-core": "1.56.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.1"

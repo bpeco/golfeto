@@ -50,11 +50,19 @@ No arreglar lints de "security definer ejecutable" revocando `EXECUTE` a helpers
 ## Comandos
 
 ```bash
-pnpm dev            # http://localhost:3000 (necesita .env.local)
-pnpm test           # 40 tests: motor WHS + matcher de nombres
-pnpm typecheck && pnpm lint && pnpm build   # lo que corre Vercel
+pnpm dev            # http://localhost:3000 (necesita .env.local; ver .env.example)
+pnpm test           # vitest: motor WHS, matcher de nombres, rutas públicas, …
+pnpm typecheck && pnpm lint && pnpm build   # lo que corre Vercel (typecheck corre `next typegen` antes de tsc)
+pnpm bundle         # JS de primera carga por ruta (gzip), después de `pnpm build`; baseline en docs/perf/
+pnpm screenshots    # capturas de /login y /dev/playground (390 y 360 px, claro/oscuro/reducido) en $GALF_SHOTS_DIR
 npx tsx scripts/seed.ts > seed.sql          # regenera el SQL del seed (ya aplicado; no reaplicar)
 ```
+
+Sin `.env.local` se puede trabajar en UI con variables de mentira: `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy ANTHROPIC_API_KEY=dummy`. Así renderizan `/login` y `/dev/playground`; el resto necesita Supabase.
+
+**Playground** (`/dev/playground`, `src/app/dev/playground/`): catálogo de componentes con fixtures tipados (sin Supabase). Visible en desarrollo, en los deploys Preview de Vercel (`VERCEL_ENV=preview`, automático) o con `GALF_PLAYGROUND=1`; en producción da 404. `/dev` es público solo en esos casos (`src/lib/public-paths.ts`).
+
+**Rutas públicas:** toda ruta o archivo que tenga que servirse sin sesión (íconos, splash, manifest) va en `src/lib/public-paths.ts` (`isPublicPath`, con test) y, si es un estático nuevo, en el `matcher` de `src/proxy.ts`.
 
 ## Convenciones de código
 
@@ -67,3 +75,7 @@ npx tsx scripts/seed.ts > seed.sql          # regenera el SQL del seed (ya aplic
 ## Skills útiles para próximas sesiones
 
 `domain-modeling` al tocar el modelo o el glosario; `tdd` para el motor WHS; `code-review` antes de mergear; `claude-api` si se toca `src/lib/vision/`; `dataviz` para cualquier gráfico nuevo. Conectores: Supabase Galf, Vercel, GitHub.
+
+**Impeccable** (skill de diseño) no está instalado: en la sesión del rediseño `npx impeccable install` falló con 403 del proxy al bajar el bundle de skills. Instalarlo desde una máquina con red libre (`npx impeccable install -y --providers=claude --scope=project --no-hooks`, revisar y commitear lo que escriba en `.claude/`) y correr `/impeccable init` para que reconcilie con `PRODUCT.md`. El detector sí anda desde la sesión: `npx impeccable detect src/`.
+
+**Conector de Vercel:** en la sesión del rediseño (2026-09-25) devolvió 403 para el team `bautistapeco97-gmailcoms-projects` (hay que re-autorizar el scope). Mientras tanto, los previews se miran desde el teléfono o desde GitHub (el check de Vercel en cada commit tiene el link).
