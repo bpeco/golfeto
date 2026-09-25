@@ -2,9 +2,10 @@ import { RollingNumber } from "./animated-board-number";
 import { notationFor, notationLabel, type NotationShape } from "@/lib/score-notation";
 import { cn } from "@/lib/utils";
 
-// Grosor del trazo en unidades del viewBox (40): ~1,5 px en sm/md y ~3 px en lg. No se usa
+// Grosor del trazo en unidades del viewBox (40): ~1,5 px en xs/sm/md y ~3 px en lg. No se usa
 // vector-effect: non-scaling-stroke porque rompe el pathLength de la animación de dibujo.
 const SIZES = {
+  xs: { box: "size-7", text: "text-base", stroke: 2.1 },
   sm: { box: "size-9", text: "text-lg", stroke: 1.7 },
   md: { box: "size-12", text: "text-2xl", stroke: 1.7 },
   lg: { box: "size-36", text: "text-numeral-2xl", stroke: 0.9 },

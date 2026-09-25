@@ -77,6 +77,8 @@ Para lo que no lee CSS (theme-color, manifest, íconos, splash) los hex están e
 | doble bogey o peor | doble cuadrado | `score-over` |
 | Hoyo no terminado | barra, sin número (nunca la palabra "X") | `warn-ink` |
 
+Se mide siempre contra el par del hoyo (es la convención de la tarjeta de papel: círculos bajo par, cuadrados sobre par, uno por golpe; se verificó en The Golf News Net, Golf Pad y The Left Rough). Va en todos los lugares donde se ven golpes por hoyo: el número grande del modo hoyo (`lg`), la tarjeta completa (`sm`) y la tira de hoyos del modo hoyo (`xs`, 28 px). En la tira el hoyo actual se marca con un recuadro de tinta, no invirtiendo la celda, para que las marcas conserven su color.
+
 Golpes recibidos: puntitos (`StrokeDots`), 1–3; desde 4, "×4"; huecos si el hándicap es plus y se dan golpes. Colores de tee: `src/lib/tee-color.ts` reconoce blancas, azules, amarillas (y doradas), rojas, negras, verdes; el blanco lleva borde de tinta.
 
 ## Componentes

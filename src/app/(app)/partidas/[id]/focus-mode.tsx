@@ -11,6 +11,7 @@ import { useConfirm } from "@/components/ui/use-confirm";
 import { strokesOnHole } from "@/lib/handicap/course";
 import { fmtDecimal, fmtIndex } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
+import { notationLabel } from "@/lib/score-notation";
 import type { HoleScore } from "@/lib/scorecard-totals";
 import { cn } from "@/lib/utils";
 import { unsignScorecard } from "../actions";
@@ -199,7 +200,11 @@ function SignedHole({ card, score, par, roundId, onUnsigned }: { card: ScoringCa
   );
 }
 
-/** La tira de hoyos como en la tarjeta: dos filas (Ida / Vuelta) de 9, golpes debajo del número. */
+/**
+ * La tira de hoyos como en la tarjeta: dos filas (Ida / Vuelta) de 9, los golpes debajo del
+ * número con la marca de la tarjeta de papel (círculo birdie, cuadrado bogey…). El hoyo actual
+ * se marca con un recuadro, no invirtiendo la celda, para que las marcas conserven su color.
+ */
 function HoleStrip({
   positions,
   scores,
@@ -224,16 +229,22 @@ function HoleStrip({
             type="button"
             onClick={() => onPick(position)}
             aria-current={active ? "step" : undefined}
-            aria-label={`Hoyo ${hole.number}${s?.pickedUp ? ", no terminado" : s?.strokes != null ? `, ${s.strokes} golpes` : ", sin golpes"}`}
+            aria-label={`Hoyo ${hole.number}, ${notationLabel(s?.strokes, hole.par, s?.pickedUp).toLowerCase()}`}
             className={cn(
-              "flex h-tap flex-col items-center justify-center border-r border-b border-border leading-none outline-none",
-              "focus-visible:relative focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              "relative flex h-15 flex-col items-center justify-center gap-0.5 border-r border-b border-border leading-none outline-none",
+              "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               position === 9 && positions.length === 18 && "border-r-line-strong",
-              active ? "bg-foreground text-background" : "hover:bg-accent",
+              active ? "ring-2 ring-foreground ring-inset" : "hover:bg-accent",
             )}
           >
-            <span className={cn("text-xs", active ? "text-background/75" : "text-muted-foreground")}>{hole.number}</span>
-            <span className="mt-0.5 font-display text-base font-bold tabular-nums">{s?.pickedUp ? "/" : (s?.strokes ?? "·")}</span>
+            <span className={cn("text-xs", active ? "font-bold text-foreground" : "text-muted-foreground")}>{hole.number}</span>
+            {s?.strokes == null && !s?.pickedUp ? (
+              <span aria-hidden className="flex size-7 items-center justify-center font-display text-base text-muted-foreground">
+                ·
+              </span>
+            ) : (
+              <ScoreMark strokes={s.strokes} par={hole.par} pickedUp={s.pickedUp} size="xs" />
+            )}
           </button>
         );
       })}
