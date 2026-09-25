@@ -12,4 +12,6 @@ Orden: de más vieja a más nueva. Tee: blancas en todas. Fechas: no hay; se asi
 | Fava | (sin tarjetas) | — |
 | Bauti | +75, +55 (sobre par, Miraflores par 71) | Miraflores |
 
+> **Corrección 2026-09-25:** "Los Cedros (Villa de Mayo)" es en realidad **CUBA Villa de Mayo**, par 68 (no 71). Los "+38, +25" de Manu eran sobre par 68 → 106 y 93 golpes. Ver `docs/handoff.md`.
+
 Canchas: Miraflores Country Club (Garín/Pilar): 18 hoyos, par 71, blancas CR 70.3 / Slope 125 (sin verificar). Club Los Cedros (Villa de Mayo): 18 hoyos, par 71, blancas 5.815 yd, CR/Slope desconocidos. Hoyo por hoyo pendiente de cargar desde la app.
