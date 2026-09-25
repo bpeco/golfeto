@@ -345,7 +345,7 @@ function Forms() {
       <Field label="Nombre del grupo" hint="Vos quedás como admin.">
         <Input placeholder="Los del sábado" />
       </Field>
-      <Field label="Hándicap declarado" error="El hándicap va de −10 a 54.">
+      <Field label="Hándicap declarado" error="Va de +10 (plus) a 54">
         <Input inputMode="decimal" defaultValue="60" />
       </Field>
       <Field label="Cancha">

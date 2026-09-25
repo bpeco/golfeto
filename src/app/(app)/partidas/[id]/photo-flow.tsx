@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import dynamic from "next/dynamic";
-import { Camera } from "lucide-react";
+import { Camera, Images } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { usePhotoPicker } from "@/components/ui/use-photo-picker";
 import { fmtCount } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
 import { resizeImage } from "@/lib/image-resize";
@@ -40,7 +41,6 @@ export function PhotoFlow({
   photos: { id: string; url: string | null }[];
   onApplied: () => void;
 }) {
-  const input = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>({ kind: "idle" });
   const [assign, setAssign] = useState<(string | null)[]>([]);
   const [rows, setRows] = useState<(number | null)[][]>([]);
@@ -49,9 +49,7 @@ export function PhotoFlow({
   const [viewing, setViewing] = useState<number | null>(null);
   const [viewerMounted, setViewerMounted] = useState(false);
 
-  async function onFile(file: File | undefined) {
-    if (input.current) input.current.value = "";
-    if (!file) return;
+  async function onFile(file: File) {
     const preview = URL.createObjectURL(file);
     setSheetMounted(true);
     setStep({ kind: "uploading", preview });
@@ -67,6 +65,8 @@ export function PhotoFlow({
       setStep({ kind: "error", message: "Sin conexión. La foto no se subió; probá de nuevo.", preview });
     }
   }
+
+  const { inputs, takePhoto, pickPhoto } = usePhotoPicker((file) => void onFile(file));
 
   async function read(photoId: string, preview: string) {
     setStep({ kind: "reading", preview, photoId, since: Date.now() });
@@ -113,11 +113,16 @@ export function PhotoFlow({
 
   return (
     <section aria-label="Fotos de la tarjeta" className="mt-6 border-t border-border pt-4">
-      <input ref={input} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="secondary" onPointerDown={() => void loadSheet()} onClick={() => input.current?.click()}>
-          <Camera /> Foto de la tarjeta
+      {inputs}
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="secondary" onPointerDown={() => void loadSheet()} onClick={takePhoto}>
+          <Camera /> Sacar foto
         </Button>
+        <Button variant="secondary" onPointerDown={() => void loadSheet()} onClick={pickPhoto}>
+          <Images /> De la galería
+        </Button>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 empty:hidden">
         {photos.map((p, i) =>
           p.url ? (
             <button
@@ -134,7 +139,7 @@ export function PhotoFlow({
           ) : null,
         )}
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">Si anotaron en papel, sacale una foto y cargamos los golpes. Cada uno firma la suya.</p>
+      <p className="mt-2 text-sm text-muted-foreground">Si anotaron en papel, sacale una foto a la tarjeta (o subí una que ya tengas) y cargamos los golpes. Cada uno firma la suya.</p>
 
       {viewerMounted && (
         <PhotoViewer
@@ -156,7 +161,8 @@ export function PhotoFlow({
           onAssign={(i, id) => setAssign(assign.map((a, j) => (j === i ? id : a)))}
           onCell={(i, k, v) => setRows(rows.map((r, j) => (j === i ? r.map((x, q) => (q === k ? v : x)) : r)))}
           onRetry={read}
-          onRetake={() => input.current?.click()}
+          onTakePhoto={takePhoto}
+          onPickPhoto={pickPhoto}
           onApply={apply}
           onDiscard={discard}
           onClose={() => setStep({ kind: "idle" })}

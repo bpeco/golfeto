@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Camera } from "lucide-react";
+import { Camera, Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CellInput } from "@/components/ui/cell-input";
 import { Notice } from "@/components/ui/notice";
@@ -23,7 +23,8 @@ export default function PhotoSheet({
   onAssign,
   onCell,
   onRetry,
-  onRetake,
+  onTakePhoto,
+  onPickPhoto,
   onApply,
   onDiscard,
   onClose,
@@ -37,7 +38,8 @@ export default function PhotoSheet({
   onAssign: (i: number, id: string | null) => void;
   onCell: (i: number, k: number, v: number | null) => void;
   onRetry: (photoId: string, preview: string) => void;
-  onRetake: () => void;
+  onTakePhoto: () => void;
+  onPickPhoto: () => void;
   onApply: () => void;
   onDiscard: () => void;
   onClose: () => void;
@@ -58,8 +60,11 @@ export default function PhotoSheet({
                   Leer de nuevo
                 </Button>
               )}
-              <Button size="lg" variant="secondary" onClick={onRetake}>
+              <Button size="lg" variant="secondary" onClick={onTakePhoto}>
                 <Camera /> Sacar otra
+              </Button>
+              <Button size="lg" variant="secondary" onClick={onPickPhoto}>
+                <Images /> Elegir otra de la galería
               </Button>
               <Button size="lg" variant="ghost" onClick={onClose}>
                 Cerrar

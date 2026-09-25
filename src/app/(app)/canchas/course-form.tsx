@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
-import { Camera, Plus, X } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Camera, Images, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CellInput } from "@/components/ui/cell-input";
 import { Field } from "@/components/ui/field";
@@ -11,12 +11,13 @@ import { Section } from "@/components/ui/section";
 import { Select } from "@/components/ui/select";
 import { TeeDot } from "@/components/ui/tee-chip";
 import { Segmented } from "@/components/ui/toggle-group";
+import { usePhotoPicker } from "@/components/ui/use-photo-picker";
 import { resizeImage } from "@/lib/image-resize";
 import { parseDecimal } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { readCourseCard } from "./photo-actions";
 import { cancelReplace, expectReplace } from "@/lib/nav-history";
+import { cn } from "@/lib/utils";
 import { saveCourseAndRedirect } from "./actions";
+import { readCourseCard } from "./photo-actions";
 import type { CourseInput } from "./schema";
 
 type TeeDraft = { key: number; name: string; courseRating: string; slope: string; distances: Record<number, string> };
@@ -71,16 +72,13 @@ export function CourseForm({
   const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, start] = useTransition();
   const [reading, setReading] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
 
   const count = Number(holesCount) as 9 | 18;
   const visibleHoles = holes.slice(0, count);
   const totalPar = visibleHoles.reduce((s, h) => s + (Number(h.par) || 0), 0);
   const invalidTees = tees.map((_, ti) => Object.keys(fields).some((k) => k.startsWith(`tees.${ti}.`)));
 
-  async function readCard(file: File | undefined) {
-    if (fileInput.current) fileInput.current.value = "";
-    if (!file) return;
+  async function readCard(file: File) {
     setReading(true);
     setError(undefined);
     setNotes(undefined);
@@ -124,6 +122,8 @@ export function CourseForm({
       setReading(false);
     }
   }
+
+  const { inputs: photoInputs, takePhoto, pickPhoto } = usePhotoPicker((file) => void readCard(file));
 
   function num(v: string) {
     const n = parseDecimal(v);
@@ -172,12 +172,18 @@ export function CourseForm({
         submit();
       }}
     >
-      <input ref={fileInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => readCard(e.target.files?.[0])} />
+      {photoInputs}
       <div>
-        <Button variant="secondary" pending={reading} pendingLabel="Leyendo la tarjeta…" onClick={() => fileInput.current?.click()}>
-          <Camera /> Leer la tarjeta del club
-        </Button>
-        <p className="mt-2 text-sm text-muted-foreground">Sacale una foto a la tarjeta impresa (par, hándicap de hoyo, distancias, CR y Slope) y se completa todo.</p>
+        <span className="text-sm font-semibold">Leer la tarjeta del club</span>
+        <div className="mt-1.5 grid grid-cols-2 gap-2">
+          <Button variant="secondary" pending={reading} pendingLabel="Leyendo…" onClick={takePhoto}>
+            <Camera /> Sacar foto
+          </Button>
+          <Button variant="secondary" disabled={reading} onClick={pickPhoto}>
+            <Images /> De la galería
+          </Button>
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">Una foto de la tarjeta impresa (par, hándicap de hoyo, distancias, CR y Slope) y se completa todo.</p>
       </div>
       {notes && <Notice tone="info">{notes}</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
