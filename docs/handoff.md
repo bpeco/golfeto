@@ -68,7 +68,7 @@ Sin `.env.local` se puede trabajar en UI con variables de mentira: `NEXT_PUBLIC_
 
 ## Convenciones de código
 
-- App Router, Server Components por defecto; `"use client"` solo donde hay interacción.
+- App Router, Server Components por defecto; `"use client"` solo donde hay interacción. Las pantallas con sesión viven en el route group `src/app/(app)/` (su `layout.tsx` pone el `<main>` y la `BottomNav`); `login`, `auth` y `dev` quedan afuera. Cada página pone su `PageHeader`. Lecturas que comparten página y `generateMetadata` van envueltas en `cache()` (`getRound`, `getCourse`, `getPlayerStats`, `getGroup`, `listMyGroups`); **no** envolver `getPlayerHandicap` (la firma lo lee antes y después de firmar en la misma acción).
 - Acciones de servidor en `actions.ts` por feature; esquemas zod en `schema.ts` aparte (un archivo `"use server"` solo puede exportar funciones async).
 - Embeds de Supabase con hint de FK cuando hay ambigüedad por las columnas de auditoría: `players!group_members_player_id_fkey(...)`.
 - Cálculo WHS solo en `src/lib/handicap/` (puro, testeado). La base guarda el snapshot en `scorecard_signatures`.

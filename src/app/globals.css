@@ -243,6 +243,44 @@
   }
 }
 
+
+/*
+ * Transiciones de ruta (React <ViewTransition> en el layout de (app)): crossfade corto.
+ * La barra de pestañas no se anima (es el ancla). Los clics durante la transición pasan.
+ */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(.page) {
+  animation: 120ms var(--ease-out) both vt-fade-out;
+}
+::view-transition-new(.page) {
+  animation: 200ms var(--ease-out) 60ms both vt-fade-in;
+}
+::view-transition-group(.morph) {
+  animation-duration: 240ms;
+}
+::view-transition-group(bottom-nav) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(bottom-nav) {
+  display: none;
+}
+::view-transition-new(bottom-nav) {
+  animation: none;
+}
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Movimiento: el sistema operativo manda. Sin transiciones de ruta ni animaciones decorativas. */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),

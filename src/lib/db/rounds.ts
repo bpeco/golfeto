@@ -1,10 +1,12 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { positionsFor, type RoundDetail, type RoundHole } from "@/lib/round-model";
 
 export { effectiveTeeRating, positionsFor } from "@/lib/round-model";
 export type { HolesPlayed, RoundDetail, RoundHole, RoundScorecard } from "@/lib/round-model";
 
-export async function getRound(roundId: string): Promise<RoundDetail | null> {
+/** Cacheada por request: la página y su generateMetadata comparten la lectura. */
+export const getRound = cache(async (roundId: string): Promise<RoundDetail | null> => {
   const supabase = await createClient();
   const { data: r } = await supabase
     .from("rounds")
@@ -79,4 +81,4 @@ export async function getRound(roundId: string): Promise<RoundDetail | null> {
       .sort((a, b) => a.playerName.localeCompare(b.playerName)),
     photos: r.photos.map((p) => ({ id: p.id, storagePath: p.storage_path, createdAt: p.created_at })),
   };
-}
+});

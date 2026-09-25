@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { CircleUserRound, ClipboardList, House, LandPlot, Users, type LucideIcon } from "lucide-react";
+import { isTabActive } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 const TABS: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
@@ -12,11 +13,6 @@ const TABS: { href: string; label: string; icon: LucideIcon; exact?: boolean }[]
   { href: "/canchas", label: "Canchas", icon: LandPlot },
   { href: "/perfil", label: "Perfil", icon: CircleUserRound },
 ];
-
-export function isTabActive(pathname: string, href: string, exact = false) {
-  if (exact) return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 /**
  * Barra de 5 pestañas abajo (zona del pulgar). La activa va en tinta con el ícono relleno.
