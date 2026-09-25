@@ -61,6 +61,7 @@ Para lo que no lee CSS (theme-color, manifest, íconos, splash) los hex están e
 - Única secuencia orquestada: login. El Inicio tiene un stagger silencioso una vez por sesión.
 - Disparado por el usuario: el numeral del stepper, `ScoreMark` dibuja su marca (250 ms), el hoyo desliza según la dirección, la firma rueda el índice de antes a después, toasts.
 - Nunca: hover en touch, shimmer (los skeletons pulsan lento, 1,6 s), animar listas al navegar.
+- Esperas largas (leer una foto, 10–30 s): los pasos reales con el actual marcado y un texto fijo de cuánto suele tardar. **Nunca un contador de segundos** ni nada que cambie cada segundo: alarga la espera y obliga a mirarla.
 - Todo en **CSS** (`src/app/globals.css`): reveal del login y del primer Inicio, `.hole-in-next` / `.hole-in-prev` (cambio de hoyo), `.score-draw` (la marca de `ScoreMark`, `pathLength="1"` y `stroke-dashoffset`), crossfade de ruta con `<ViewTransition>`. El bloque `prefers-reduced-motion` al final de `globals.css` las anula todas; si se agrega una animación, se agrega ahí. **Desvío del plan (Fase 6):** el plan pedía `motion` con `LazyMotion`; se quitó porque sumaba ~11 kB al primer JS de cada ruta y lo único que animaba (la marca y el cambio de hoyo) sale igual en CSS. El único numeral que rueda es `AnimatedBoardNumber` (NumberFlow, que respeta la preferencia solo y se baja aparte).
 
 ## Notación de la tarjeta
