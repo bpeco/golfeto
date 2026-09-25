@@ -8,6 +8,8 @@ import { courseHandicap, courseHandicap9 } from "@/lib/handicap/course";
 import { ScoreGrid } from "./score-grid";
 import { PlayerTabs } from "./player-tabs";
 import { RoundMenu } from "./round-menu";
+import { PhotoPanel } from "./photo-panel";
+import { signedPhotoUrls } from "./photo-actions";
 
 export default async function RoundPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ j?: string }> }) {
   const { id } = await params;
@@ -17,7 +19,10 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
   if (!round) notFound();
 
   const rating = effectiveTeeRating(round);
-  const handicaps = await getHandicapsFor(round.scorecards.map((s) => s.playerId));
+  const [handicaps, photoUrls] = await Promise.all([
+    getHandicapsFor(round.scorecards.map((s) => s.playerId)),
+    signedPhotoUrls(round.photos.map((p) => p.storagePath)),
+  ]);
 
   const cards = round.scorecards.map((card) => {
     const idx = handicaps.get(card.playerId)?.effective ?? null;
@@ -52,6 +57,15 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
           gross: card.signature?.gross ?? null,
         }))}
       />
+
+      <div className="mt-4">
+        <PhotoPanel
+          roundId={round.id}
+          holesInRound={round.positions.length}
+          players={cards.map(({ card }) => ({ id: card.id, name: card.playerName, signed: !!card.signedAt }))}
+          photos={round.photos.map((p) => ({ id: p.id, url: photoUrls[p.storagePath] ?? null }))}
+        />
+      </div>
 
       {selected && (
         <div className="mt-3">

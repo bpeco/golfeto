@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { resizeImage } from "@/lib/image-resize";
+import { readCourseCard } from "./photo-actions";
 import { Button, ErrorBanner, Field, inputClass } from "@/components/ui";
 import { saveCourseAndRedirect } from "./actions";
 import type { CourseInput } from "./schema";
@@ -47,6 +49,52 @@ export function CourseForm({
   );
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [reading, setReading] = useState(false);
+
+  async function readCard(file: File | undefined) {
+    if (!file) return;
+    setReading(true);
+    setError(undefined);
+    try {
+      const fd = new FormData();
+      fd.set("file", new File([await resizeImage(file, 2000)], "tarjeta.jpg", { type: "image/jpeg" }));
+      const r = await readCourseCard(fd);
+      if (r.error || !r.card) {
+        setError(r.error ?? "No se pudo leer la tarjeta");
+        return;
+      }
+      const card = r.card;
+      if (!name && card.courseName) setName(card.courseName);
+      if (!club && card.club) setClub(card.club);
+      const count = card.holes.length >= 18 ? 18 : 9;
+      setHolesCount(count);
+      setHoles(
+        Array.from({ length: 18 }, (_, i) => {
+          const h = card.holes.find((x) => x.number === i + 1);
+          return h ? { par: String(h.par), strokeIndex: h.strokeIndex ? String(h.strokeIndex) : "" } : holes[i];
+        }),
+      );
+      if (card.tees.length) {
+        setTees(
+          card.tees.map((t) => ({
+            name: t.name,
+            courseRating: t.courseRating?.toString() ?? "",
+            slope: t.slope?.toString() ?? "",
+            distances: Object.fromEntries(
+              t.distances
+                .map((d, i) => [card.holes[i]?.number ?? i + 1, d == null ? "" : String(t.unit === "yardas" ? Math.round(d * 0.9144) : d)] as const)
+                .filter(([, v]) => v !== ""),
+            ),
+          })),
+        );
+      }
+      if (card.notes) setError(`Leído. Revisá: ${card.notes}`);
+    } finally {
+      setReading(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  }
 
   const visibleHoles = holes.slice(0, holesCount);
   const totalPar = visibleHoles.reduce((s, h) => s + (Number(h.par) || 0), 0);
@@ -85,6 +133,13 @@ export function CourseForm({
   return (
     <div className="space-y-6">
       <ErrorBanner message={error} />
+      <div>
+        <input ref={fileInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => readCard(e.target.files?.[0])} />
+        <Button type="button" variant="secondary" disabled={reading} onClick={() => fileInput.current?.click()}>
+          {reading ? "Leyendo la tarjeta…" : "📷 Leer la tarjeta del club"}
+        </Button>
+        <p className="mt-1 text-xs text-muted">Sacale una foto a la tarjeta impresa (par, hándicap de hoyo, distancias) y se prellena todo.</p>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
           <Field label="Nombre de la cancha">
