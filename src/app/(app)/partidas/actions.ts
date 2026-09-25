@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
-import { getPlayerHandicap } from "@/lib/db/handicap";
+import { getPlayerHandicap, type PlayerHandicap } from "@/lib/db/handicap";
 import { effectiveTeeRating, getRound } from "@/lib/db/rounds";
+import { fail, friendlyDbError, fromZod, ok, type ActionResult } from "@/lib/action-result";
+import { flash } from "@/lib/flash";
 import {
   adjustedGrossScore,
   courseHandicap,
@@ -15,21 +17,22 @@ import {
 } from "@/lib/handicap/course";
 import { roundInputSchema } from "./schema";
 
-export async function createRound(raw: unknown): Promise<{ error?: string; roundId?: string }> {
+export async function createRound(raw: unknown): Promise<ActionResult<{ roundId: string }>> {
   const parsed = roundInputSchema.safeParse(raw);
-  if (!parsed.success) return { error: parsed.error.issues.map((i) => i.message).join("; ") };
+  if (!parsed.success) return fromZod(parsed.error);
   const input = parsed.data;
+  if (input.playerIds.length + input.guests.length === 0) return fail("Elegí al menos un jugador", { players: "Elegí al menos un jugador" });
   const me = await requirePlayer();
   const supabase = await createClient();
 
   const { data: format } = await supabase.from("round_formats").select("id").eq("code", "medal").single();
-  if (!format) return { error: "Falta el formato medal" };
+  if (!format) return fail("Falta el formato medal en la base. Avisale al dueño del proyecto.");
 
   // Invitados nuevos: se crean como golfistas sin cuenta.
   const guestIds: string[] = [];
   for (const g of input.guests) {
     const { data, error } = await supabase.from("players").insert({ display_name: g.name }).select("id").single();
-    if (error) return { error: error.message };
+    if (error) return fail(friendlyDbError(error));
     guestIds.push(data.id);
     if (g.declaredHandicap != null) {
       await supabase.from("player_declared_handicaps").insert({ player_id: data.id, value: g.declaredHandicap });
@@ -37,7 +40,6 @@ export async function createRound(raw: unknown): Promise<{ error?: string; round
   }
 
   const playerIds = Array.from(new Set([...input.playerIds, ...guestIds]));
-  if (playerIds.length === 0) return { error: "Elegí al menos un jugador" };
 
   const { data: round, error: rErr } = await supabase
     .from("rounds")
@@ -49,26 +51,25 @@ export async function createRound(raw: unknown): Promise<{ error?: string; round
       holes_played: input.holesPlayed,
       loops: input.loops,
       created_by: me.id,
-      notes: input.notes ?? null,
+      notes: input.notes || null,
     })
     .select("id")
     .single();
-  if (rErr) return { error: rErr.message };
+  if (rErr) return fail(friendlyDbError(rErr));
 
-  const { error: sErr } = await supabase
-    .from("scorecards")
-    .insert(playerIds.map((player_id) => ({ round_id: round.id, player_id })));
-  if (sErr) return { error: sErr.message };
+  const { error: sErr } = await supabase.from("scorecards").insert(playerIds.map((player_id) => ({ round_id: round.id, player_id })));
+  if (sErr) return fail(friendlyDbError(sErr));
 
   revalidatePath("/");
   revalidatePath("/partidas");
-  return { roundId: round.id };
+  return ok({ roundId: round.id });
 }
 
-export async function createRoundAndRedirect(raw: unknown) {
+export async function createRoundAndRedirect(raw: unknown): Promise<ActionResult<{ roundId: string }>> {
   const r = await createRound(raw);
-  if (r.error) return r;
-  redirect(`/partidas/${r.roundId}`);
+  if (!r.ok) return r;
+  await flash("Partida creada. A anotar.");
+  redirect(`/partidas/${r.data.roundId}`);
 }
 
 export async function saveHoleScore(input: {
@@ -77,22 +78,23 @@ export async function saveHoleScore(input: {
   position: number;
   strokes: number | null;
   pickedUp: boolean;
-}): Promise<{ error?: string }> {
+}): Promise<ActionResult> {
   const supabase = await createClient();
-  const { data: existing } = await supabase
+  const { data: existing, error: readErr } = await supabase
     .from("hole_scores")
     .select("id")
     .eq("scorecard_id", input.scorecardId)
     .eq("position", input.position)
     .is("deleted_at", null)
     .maybeSingle();
+  if (readErr) return fail(friendlyDbError(readErr));
 
   const empty = input.strokes == null && !input.pickedUp;
   if (existing) {
     const { error } = empty
       ? await supabase.from("hole_scores").delete().eq("id", existing.id)
       : await supabase.from("hole_scores").update({ strokes: input.strokes, picked_up: input.pickedUp }).eq("id", existing.id);
-    if (error) return { error: error.message };
+    if (error) return fail(friendlyDbError(error));
   } else if (!empty) {
     const { error } = await supabase.from("hole_scores").insert({
       scorecard_id: input.scorecardId,
@@ -101,34 +103,49 @@ export async function saveHoleScore(input: {
       strokes: input.strokes,
       picked_up: input.pickedUp,
     });
-    if (error) return { error: error.message };
+    if (error) return fail(friendlyDbError(error));
   }
-  return {};
+  return ok();
 }
+
+export type SignSummary = {
+  gross: number;
+  adjustedGross: number;
+  courseHandicap: number;
+  differential: number;
+  indexBefore: number | null;
+  sourceBefore: PlayerHandicap["source"];
+  indexAfter: number | null;
+  sourceAfter: PlayerHandicap["source"];
+  signedCount: number;
+};
 
 /**
  * Firma: calcula hándicap de cancha, score ajustado y diferencial con el motor WHS
  * y los congela en la firma (RPC sign_scorecard). Solo el dueño puede firmar (la DB lo exige).
+ * Devuelve el índice antes y después para mostrarlo en el momento.
  */
-export async function signScorecard(roundId: string, scorecardId: string): Promise<{ error?: string }> {
+export async function signScorecard(roundId: string, scorecardId: string): Promise<ActionResult<SignSummary>> {
   const round = await getRound(roundId);
-  if (!round) return { error: "Partida inexistente" };
+  if (!round) return fail("No encontramos la partida. Puede haber sido dada de baja.");
   const card = round.scorecards.find((s) => s.id === scorecardId);
-  if (!card) return { error: "Tarjeta inexistente" };
+  if (!card) return fail("No encontramos la tarjeta.");
 
   const rating = effectiveTeeRating(round);
-  if (!rating) return { error: "El tee no tiene Course Rating y Slope; cargalos en la cancha para poder firmar." };
+  if (!rating) return fail("El tee no tiene Course Rating y Slope: cargalos en la cancha para poder firmar.");
 
-  const hcp = await getPlayerHandicap(card.playerId);
-  const index = hcp.effective;
-  const source = hcp.source === "calculado" ? "index" : hcp.source === "declarado" ? "declarado" : "ninguno";
+  const before = await getPlayerHandicap(card.playerId);
+  const index = before.effective;
+  const source = before.source === "calculado" ? "index" : before.source === "declarado" ? "declarado" : "ninguno";
   const usedIndex = index ?? 0;
   const ch = rating.holesInRound === 9 ? courseHandicap9(usedIndex, rating) : courseHandicap(usedIndex, rating);
 
   let adjustedGross: number;
+  let gross: number;
   if (card.isLegacy) {
-    if (card.legacyGross == null) return { error: "La tarjeta histórica no tiene total" };
+    if (card.legacyGross == null) return fail("La tarjeta histórica no tiene total.");
     adjustedGross = card.legacyGross;
+    gross = card.legacyGross;
   } else {
     const results = round.positions.map(({ position, hole }) => {
       const sc = card.scores[position];
@@ -140,9 +157,10 @@ export async function signScorecard(roundId: string, scorecardId: string): Promi
     });
     const ags = adjustedGrossScore(results, ch, rating.holesInRound);
     if (!ags.acceptable) {
-      return { error: `Faltan hoyos: hay ${ags.holesPlayed} cargados y se necesitan al menos ${rating.holesInRound === 18 ? 10 : 9}.` };
+      return fail(`Faltan hoyos: hay ${ags.holesPlayed} cargados y se necesitan al menos ${rating.holesInRound === 18 ? 10 : 9}.`);
     }
     adjustedGross = ags.adjustedGross;
+    gross = ags.gross;
   }
 
   let differential = scoreDifferential(adjustedGross, rating);
@@ -158,42 +176,59 @@ export async function signScorecard(roundId: string, scorecardId: string): Promi
     p_adjusted_gross: adjustedGross,
     p_differential: differential,
   });
-  if (error) return { error: error.message };
+  if (error) return fail(friendlyDbError(error));
 
-  await snapshotIndex(card.playerId);
+  const after = await snapshotIndex(card.playerId);
   revalidatePath(`/partidas/${roundId}`);
   revalidatePath("/");
-  return {};
-}
-
-export async function unsignScorecard(roundId: string, scorecardId: string): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("unsign_scorecard", { p_scorecard_id: scorecardId });
-  if (error) return { error: error.message };
-  const { data: card } = await supabase.from("scorecards").select("player_id").eq("id", scorecardId).single();
-  if (card) await snapshotIndex(card.player_id);
-  revalidatePath(`/partidas/${roundId}`);
-  revalidatePath("/");
-  return {};
-}
-
-/** Guarda el Index recalculado como evento (serie para el gráfico). */
-async function snapshotIndex(playerId: string) {
-  const h = await getPlayerHandicap(playerId);
-  if (h.computed == null) return;
-  const supabase = await createClient();
-  await supabase.from("handicap_index_snapshots").insert({
-    player_id: playerId,
-    value: h.computed,
-    counted_scorecards: Math.min(20, h.signedCount),
+  return ok({
+    gross,
+    adjustedGross,
+    courseHandicap: ch,
+    differential,
+    indexBefore: before.effective,
+    sourceBefore: before.source,
+    indexAfter: after.effective,
+    sourceAfter: after.source,
+    signedCount: after.signedCount,
   });
 }
 
-export async function deleteRound(roundId: string) {
+export async function unsignScorecard(
+  roundId: string,
+  scorecardId: string,
+  reason?: string,
+): Promise<ActionResult<{ indexAfter: number | null; sourceAfter: PlayerHandicap["source"] }>> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("unsign_scorecard", { p_scorecard_id: scorecardId, p_reason: reason?.trim() || undefined });
+  if (error) return fail(friendlyDbError(error));
+  const { data: card } = await supabase.from("scorecards").select("player_id").eq("id", scorecardId).single();
+  const after = card ? await snapshotIndex(card.player_id) : null;
+  revalidatePath(`/partidas/${roundId}`);
+  revalidatePath("/");
+  return ok({ indexAfter: after?.effective ?? null, sourceAfter: after?.source ?? null });
+}
+
+/** Recalcula el hándicap y guarda el Index como evento (serie para el gráfico). */
+async function snapshotIndex(playerId: string): Promise<PlayerHandicap> {
+  const h = await getPlayerHandicap(playerId);
+  if (h.computed != null) {
+    const supabase = await createClient();
+    await supabase.from("handicap_index_snapshots").insert({
+      player_id: playerId,
+      value: h.computed,
+      counted_scorecards: Math.min(20, h.signedCount),
+    });
+  }
+  return h;
+}
+
+export async function deleteRound(roundId: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.from("rounds").delete().eq("id", roundId);
-  if (error) return { error: error.message };
+  if (error) return fail(friendlyDbError(error));
   revalidatePath("/");
   revalidatePath("/partidas");
+  await flash("Partida dada de baja.", "info");
   redirect("/partidas");
 }

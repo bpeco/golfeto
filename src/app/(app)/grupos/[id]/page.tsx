@@ -70,7 +70,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
                   </p>
                 </div>
                 <span className="text-lg font-bold tabular-nums">{fmtIndex(h?.effective ?? null)}</span>
-                <MemberActions groupId={group.id} memberId={m.id} isSelf={m.player!.id === me.id} isAdmin={!!isAdmin} />
+                <MemberActions groupId={group.id} groupName={group.name} memberId={m.id} memberName={m.player!.display_name} isSelf={m.player!.id === me.id} isAdmin={!!isAdmin} />
               </div>
             );
           })}

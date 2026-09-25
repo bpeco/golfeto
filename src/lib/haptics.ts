@@ -1,21 +1,34 @@
 /**
- * Vibración corta como confirmación física. Solo Android (navigator.vibrate) y solo si el
- * usuario no pidió reducir movimiento; hay que llamarla sincrónicamente dentro del handler del
- * toque (el navegador la ignora fuera de un gesto). iOS no expone vibración a la web.
+ * Vibración corta como confirmación física. Android: navigator.vibrate. iOS no expone vibración
+ * a la web; hay un truco (tocar por código la etiqueta de un <input type="checkbox" switch>,
+ * Safari 17.4+) que queda detrás de NEXT_PUBLIC_GALF_IOS_HAPTICS=1 hasta probarlo en un iPhone.
+ * Siempre sincrónico dentro del handler del toque, y nunca con "reducir movimiento".
  */
-function canVibrate() {
-  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return false;
-  return !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const IOS_FLAG = process.env.NEXT_PUBLIC_GALF_IOS_HAPTICS === "1";
+export const IOS_HAPTIC_LABEL_ID = "galf-haptic";
+
+function reduced() {
+  return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
 function vibrate(pattern: number | number[]) {
-  if (!canVibrate()) return;
-  try {
-    navigator.vibrate(pattern);
-  } catch {
-    /* algunos navegadores tiran si no hay gesto: se ignora */
+  if (typeof navigator === "undefined" || reduced()) return;
+  if (typeof navigator.vibrate === "function") {
+    try {
+      navigator.vibrate(pattern);
+    } catch {
+      /* algunos navegadores tiran si no hay gesto: se ignora */
+    }
+    return;
+  }
+  if (IOS_FLAG) {
+    const pulses = Array.isArray(pattern) ? Math.ceil(pattern.length / 2) : 1;
+    const label = document.getElementById(IOS_HAPTIC_LABEL_ID);
+    for (let i = 0; i < pulses; i++) label?.click();
   }
 }
+
+export const iosHapticsEnabled = IOS_FLAG;
 
 export const haptics = {
   /** Un golpe más o menos, un toggle. */

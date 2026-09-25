@@ -1,44 +1,43 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
+import { fail, friendlyDbError, fromZod, ok, type ActionResult } from "@/lib/action-result";
+import { parseDecimal } from "@/lib/format";
+import { declaredHandicapSchema, displayNameSchema } from "./schema";
 
-export async function saveDeclaredHandicap(formData: FormData) {
-  const raw = String(formData.get("value") ?? "").replace(",", ".").trim();
-  const value = raw === "" ? null : Number(raw);
-  if (value != null && (Number.isNaN(value) || value < -10 || value > 54)) redirect("/perfil?error=Hándicap inválido");
+export async function saveDeclaredHandicap(_prev: ActionResult<{ value: number }> | null, formData: FormData): Promise<ActionResult<{ value: number }>> {
+  const raw = String(formData.get("value") ?? "");
+  const parsed = declaredHandicapSchema.safeParse(parseDecimal(raw));
+  if (!parsed.success) return fromZod(parsed.error);
 
   const me = await requirePlayer();
   const supabase = await createClient();
-  if (value != null) {
-    const { error } = await supabase
-      .from("player_declared_handicaps")
-      .insert({ player_id: me.id, value, valid_from: new Date().toISOString().slice(0, 10) });
-    if (error) redirect(`/perfil?error=${encodeURIComponent(error.message)}`);
-  }
+  const { error } = await supabase
+    .from("player_declared_handicaps")
+    .insert({ player_id: me.id, value: parsed.data, valid_from: new Date().toISOString().slice(0, 10) });
+  if (error) return fail(friendlyDbError(error));
   revalidatePath("/perfil");
   revalidatePath("/");
-  redirect("/perfil?ok=1");
+  return ok({ value: parsed.data });
 }
 
-export async function updateDisplayName(formData: FormData) {
-  const name = String(formData.get("display_name") ?? "").trim();
-  if (!name) redirect("/perfil?error=El nombre no puede estar vacío");
+export async function updateDisplayName(_prev: ActionResult<{ name: string }> | null, formData: FormData): Promise<ActionResult<{ name: string }>> {
+  const parsed = displayNameSchema.safeParse(formData.get("display_name"));
+  if (!parsed.success) return fromZod(parsed.error);
   const me = await requirePlayer();
   const supabase = await createClient();
-  const { error } = await supabase.from("players").update({ display_name: name }).eq("id", me.id);
-  if (error) redirect(`/perfil?error=${encodeURIComponent(error.message)}`);
-  revalidatePath("/");
-  redirect("/perfil?ok=1");
+  const { error } = await supabase.from("players").update({ display_name: parsed.data }).eq("id", me.id);
+  if (error) return fail(friendlyDbError(error));
+  revalidatePath("/", "layout");
+  return ok({ name: parsed.data });
 }
 
-export async function claimGuest(guestId: string): Promise<{ error?: string }> {
+export async function claimGuest(guestId: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("claim_guest", { p_guest_id: guestId });
-  if (error) return { error: error.message };
-  revalidatePath("/");
-  revalidatePath("/perfil");
-  return {};
+  if (error) return fail(friendlyDbError(error));
+  revalidatePath("/", "layout");
+  return ok();
 }

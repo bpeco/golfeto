@@ -7,6 +7,7 @@ import { toImageInput, VISION_MODEL } from "@/lib/vision/client";
 import { extractScorecard, type ScorecardExtraction } from "@/lib/vision/scorecard";
 import { suggestAssignments } from "@/lib/vision/match";
 import { saveHoleScore } from "../actions";
+import { fail, friendlyDbError, ok, type ActionResult } from "@/lib/action-result";
 
 export type ExtractionResult = {
   photoId: string;
@@ -16,13 +17,13 @@ export type ExtractionResult = {
 };
 
 /** Sube la foto de la partida, la registra y la lee con el modelo de visión. */
-export async function uploadAndExtract(formData: FormData): Promise<{ error?: string; result?: ExtractionResult }> {
+export async function uploadAndExtract(formData: FormData): Promise<ActionResult<ExtractionResult>> {
   const roundId = String(formData.get("roundId") ?? "");
   const file = formData.get("file");
-  if (!(file instanceof File) || !roundId) return { error: "Falta la foto" };
+  if (!(file instanceof File) || !roundId) return fail("Falta la foto.");
 
   const round = await getRound(roundId);
-  if (!round) return { error: "Partida inexistente" };
+  if (!round) return fail("No encontramos la partida.");
 
   const supabase = await createClient();
   const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
@@ -30,14 +31,14 @@ export async function uploadAndExtract(formData: FormData): Promise<{ error?: st
   const bytes = await file.arrayBuffer();
 
   const { error: upErr } = await supabase.storage.from("scorecard-photos").upload(path, bytes, { contentType: file.type || "image/jpeg" });
-  if (upErr) return { error: `No se pudo subir la foto: ${upErr.message}` };
+  if (upErr) return fail(`No se pudo subir la foto. ${friendlyDbError(upErr)}`);
 
   const { data: photo, error: phErr } = await supabase
     .from("round_photos")
     .insert({ round_id: roundId, storage_path: path })
     .select("id")
     .single();
-  if (phErr) return { error: phErr.message };
+  if (phErr) return fail(friendlyDbError(phErr));
 
   let extraction: ScorecardExtraction;
   try {
@@ -46,7 +47,8 @@ export async function uploadAndExtract(formData: FormData): Promise<{ error?: st
       playerNames: round.scorecards.map((s) => s.playerName),
     });
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Falló la lectura de la foto" };
+    console.error("Lectura de tarjeta", e);
+    return fail("No pudimos leer la foto. La foto quedó guardada; probá con otra más de frente y con buena luz.");
   }
 
   await supabase.from("round_photo_extractions").insert({ round_photo_id: photo.id, model: VISION_MODEL, raw_output: extraction });
@@ -57,17 +59,18 @@ export async function uploadAndExtract(formData: FormData): Promise<{ error?: st
   );
 
   revalidatePath(`/partidas/${roundId}`);
-  return { result: { photoId: photo.id, extraction, suggestions } };
+  return ok({ photoId: photo.id, extraction, suggestions });
 }
 
 /** Escribe los golpes confirmados por el usuario en las tarjetas elegidas (nunca sobre una firmada). */
 export async function applyExtraction(
   roundId: string,
   assignments: { scorecardId: string; strokes: (number | null)[] }[],
-): Promise<{ error?: string; applied: number }> {
+): Promise<ActionResult<{ applied: number; strokes: number }>> {
   const round = await getRound(roundId);
-  if (!round) return { error: "Partida inexistente", applied: 0 };
+  if (!round) return fail("No encontramos la partida.");
   let applied = 0;
+  let strokesSaved = 0;
   for (const a of assignments) {
     const card = round.scorecards.find((s) => s.id === a.scorecardId);
     if (!card || card.signedAt || card.isLegacy) continue;
@@ -75,12 +78,13 @@ export async function applyExtraction(
       const strokes = a.strokes[position - 1];
       if (strokes == null || strokes < 1 || strokes > 30) continue;
       const r = await saveHoleScore({ scorecardId: card.id, holeId: hole.id, position, strokes, pickedUp: false });
-      if (r.error) return { error: r.error, applied };
+      if (!r.ok) return fail(`${r.error} Se cargaron ${strokesSaved} golpes antes del error.`);
+      strokesSaved++;
     }
     applied++;
   }
   revalidatePath(`/partidas/${roundId}`);
-  return { applied };
+  return ok({ applied, strokes: strokesSaved });
 }
 
 export async function signedPhotoUrls(paths: string[]): Promise<Record<string, string>> {

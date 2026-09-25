@@ -35,6 +35,10 @@ import { TeeChip } from "@/components/ui/tee-chip";
 import { Textarea } from "@/components/ui/textarea";
 import { Segmented } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+import { ThemeSwitch } from "@/components/theme-switch";
+import { useConfirm } from "@/components/ui/use-confirm";
+import { estimateSignature } from "@/lib/sign-estimate";
+import { SignSheet } from "@/app/(app)/partidas/[id]/sign-sheet";
 import { archivo, bigShoulders, publicSans } from "./fonts";
 import { ME_ID, courseDetail, courseHandicaps, groups, players, recentRounds, round } from "./fixtures";
 import { InicioVariant, PartidaVariant } from "./variants";
@@ -69,7 +73,7 @@ export function Playground({ variant }: { variant: Variant }) {
     <main className="mx-auto w-full max-w-lg px-4 pt-4 pb-32">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Playground</h1>
-        <ThemeSwitch />
+        <ThemeSwitch className="w-auto" />
       </div>
       <p className="mt-1 text-sm text-muted-foreground">Componentes de Galf con datos de mentira. No toca Supabase.</p>
       <nav aria-label="Secciones del playground" className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
@@ -134,26 +138,6 @@ function Shot({ id, title, children }: { id: string; title: string; children: Re
       <h2 className="mb-4 border-b-2 border-line-strong pb-1 text-lg font-semibold">{title}</h2>
       {children}
     </section>
-  );
-}
-
-function ThemeSwitch() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- el tema guardado solo existe en el cliente
-  useEffect(() => setMounted(true), []);
-  return (
-    <Segmented
-      label="Tema"
-      className="w-auto"
-      value={(mounted ? theme : "system") as "system" | "light" | "dark"}
-      onValueChange={setTheme}
-      options={[
-        { value: "system", label: "Sistema" },
-        { value: "light", label: "Claro" },
-        { value: "dark", label: "Oscuro" },
-      ]}
-    />
   );
 }
 
@@ -602,8 +586,52 @@ function Grids() {
 // ——— Overlays ———
 
 function Overlays() {
+  const confirm = useConfirm();
+  const [signOpen, setSignOpen] = useState(false);
+  const bauti = round.scorecards.find((c) => c.id === "card-bauti")!;
+  const estimate = estimateSignature(round.positions, { ...bauti.scores, 13: { strokes: 5, pickedUp: false } }, { courseRating: 70.3, slope: 125, par: 71, holesInRound: 18 }, 21.3);
   return (
     <div className="flex flex-wrap gap-2">
+      <Button
+        variant="secondary"
+        onClick={async () => {
+          const r = await confirm({
+            title: "¿Desfirmar tu tarjeta?",
+            body: "Deja de contar para tu hándicap hasta que la vuelvas a firmar.",
+            confirmLabel: "Desfirmar",
+            tone: "destructive",
+            reason: { label: "Motivo (opcional)", placeholder: "Me equivoqué en el hoyo 7" },
+          });
+          toast(r.ok ? `Confirmado${r.reason ? `: ${r.reason}` : ""}` : "Cancelado");
+        }}
+      >
+        Confirmación
+      </Button>
+      <Button variant="secondary" onClick={() => setSignOpen(true)}>
+        Firmar (de mentira)
+      </Button>
+      <SignSheet
+        open={signOpen}
+        onOpenChange={setSignOpen}
+        roundId={round.id}
+        cardId="card-bauti"
+        estimate={estimate}
+        toPar={9}
+        sign={async () => ({
+          ok: true,
+          data: {
+            gross: estimate.gross,
+            adjustedGross: estimate.adjustedGross,
+            courseHandicap: estimate.courseHandicap,
+            differential: estimate.differential,
+            indexBefore: 21.3,
+            sourceBefore: "calculado",
+            indexAfter: 20.8,
+            sourceAfter: "calculado",
+            signedCount: 13,
+          },
+        })}
+      />
       <Sheet>
         <SheetTrigger render={<Button variant="secondary" />}>Abrir hoja</SheetTrigger>
         <SheetContent>

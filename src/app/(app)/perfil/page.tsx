@@ -1,61 +1,71 @@
 import type { Metadata } from "next";
-import { Shell } from "@/components/shell";
+import { LogOut } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BoardNumber } from "@/components/ui/board-number";
 import { Button } from "@/components/ui/button";
-import { Card, ErrorBanner, Field, inputClass } from "@/components/ui/legacy";
-import { fmtIndex } from "@/lib/format";
+import { PageHeader } from "@/components/ui/page-header";
+import { Section } from "@/components/ui/section";
+import { ThemeSwitch } from "@/components/theme-switch";
 import { requirePlayer } from "@/lib/db/player";
 import { getPlayerHandicap } from "@/lib/db/handicap";
-import { saveDeclaredHandicap, updateDisplayName } from "./actions";
-import { ClaimGuest } from "./claim-guest";
+import { fmtCount } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+import { ClaimGuest } from "./claim-guest";
+import { DeclaredHandicapForm } from "./declared-handicap-form";
+import { DisplayNameForm } from "./display-name-form";
 
 export const metadata: Metadata = { title: "Perfil" };
 
-export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; ok?: string }> }) {
-  const { error, ok } = await searchParams;
+export default async function ProfilePage() {
   const me = await requirePlayer();
   const supabase = await createClient();
   // RPC: las tarjetas del historial importado no son visibles por RLS hasta que se reclaman.
   const [h, { data: guestRows }] = await Promise.all([getPlayerHandicap(me.id), supabase.rpc("claimable_guests")]);
   const guests = (guestRows ?? []).map((g) => ({ id: g.id, name: g.display_name, cards: g.cards }));
+  const missing = Math.max(0, 3 - h.signedCount);
 
   return (
-    <Shell title="Perfil">
-      <ErrorBanner message={error} />
-      {ok && <p className="rounded-xl bg-primary/10 px-3 py-2 text-sm">Guardado.</p>}
+    <>
+      <PageHeader title="Perfil" meta={me.email ? <span>{me.email}</span> : undefined} />
 
-      <Card className="mt-3 grid grid-cols-2 gap-3 text-center">
-        <div>
-          <p className="text-xs text-muted-foreground">Calculado por Galf</p>
-          <p className="text-3xl font-black tabular-nums">{fmtIndex(h.computed)}</p>
-          <p className="text-xs text-muted-foreground">{h.signedCount} tarjetas firmadas{h.signedCount < 3 ? " (mín. 3)" : ""}</p>
+      <Section title="Tu hándicap">
+        <div className="grid grid-cols-2 divide-x divide-border border-y border-border">
+          <div className="py-4 pr-4">
+            <p className="text-sm text-muted-foreground">Calculado por Galf</p>
+            <BoardNumber value={h.computed} kind="index" size="lg" className="mt-1 block" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              {missing > 0 ? `Te ${missing === 1 ? "falta 1 tarjeta firmada" : `faltan ${missing} tarjetas firmadas`}` : fmtCount(h.signedCount, "tarjeta firmada", "tarjetas firmadas")}
+            </p>
+            {h.source === "calculado" && <Badge tone="signed" className="mt-2">en uso</Badge>}
+          </div>
+          <div className="py-4 pl-4">
+            <p className="text-sm text-muted-foreground">Declarado (AAG)</p>
+            <BoardNumber value={h.declared} kind="index" size="lg" className="mt-1 block" />
+            <p className="mt-2 text-sm text-muted-foreground">{h.declared == null ? "Sin cargar" : h.source === "declarado" ? "Se usa hasta tener 3 firmadas" : "Referencia"}</p>
+            {h.source === "declarado" && <Badge tone="signed" className="mt-2">en uso</Badge>}
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Declarado (AAG)</p>
-          <p className="text-3xl font-black tabular-nums">{fmtIndex(h.declared)}</p>
-          <p className="text-xs text-muted-foreground">{h.source === "declarado" ? "en uso" : h.declared != null ? "referencia" : ""}</p>
+        <div className="mt-5">
+          <DeclaredHandicapForm current={h.declared} />
         </div>
-      </Card>
-
-      <form action={saveDeclaredHandicap} className="mt-6 space-y-3">
-        <Field label="Hándicap declarado" hint="Tu índice oficial. Se usa hasta que Galf tenga 3 tarjetas firmadas tuyas.">
-          <input name="value" inputMode="decimal" className={inputClass} placeholder="18.4" defaultValue={h.declared ?? ""} />
-        </Field>
-        <Button type="submit" variant="secondary">Guardar hándicap</Button>
-      </form>
+      </Section>
 
       <ClaimGuest guests={guests} />
 
-      <form action={updateDisplayName} className="mt-6 space-y-3">
-        <Field label="Nombre">
-          <input name="display_name" className={inputClass} defaultValue={me.displayName} maxLength={80} />
-        </Field>
-        <Button type="submit" variant="secondary">Guardar nombre</Button>
-      </form>
+      <Section title="Tu nombre">
+        <DisplayNameForm current={me.displayName} />
+      </Section>
+
+      <Section title="Apariencia">
+        <ThemeSwitch />
+        <p className="mt-2 text-sm text-muted-foreground">Sistema sigue al modo oscuro del teléfono.</p>
+      </Section>
 
       <form action="/auth/signout" method="post" className="mt-10">
-        <Button type="submit" variant="destructive-outline" className="w-full">Cerrar sesión</Button>
+        <Button type="submit" variant="secondary" size="lg" className="w-full">
+          <LogOut /> Cerrar sesión
+        </Button>
       </form>
-    </Shell>
+    </>
   );
 }

@@ -2,8 +2,12 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBanner } from "@/components/ui/legacy";
+import { haptics } from "@/lib/haptics";
+import { fmtCount } from "@/lib/format";
 import { resizeImage } from "@/lib/image-resize";
 import { applyExtraction, uploadAndExtract, type ExtractionResult } from "./photo-actions";
 
@@ -38,13 +42,15 @@ export function PhotoPanel({
       fd.set("file", new File([blob], "tarjeta.jpg", { type: "image/jpeg" }));
       setBusy("Leyendo la tarjeta…");
       const r = await uploadAndExtract(fd);
-      if (r.error || !r.result) {
-        setError(r.error ?? "Error");
+      if (!r.ok) {
+        setError(r.error);
       } else {
-        setResult(r.result);
-        setAssign(r.result.suggestions);
-        setRows(r.result.extraction.rows.map((row) => padTo(row.strokes, holesInRound)));
+        setResult(r.data);
+        setAssign(r.data.suggestions);
+        setRows(r.data.extraction.rows.map((row) => padTo(row.strokes, holesInRound)));
       }
+    } catch {
+      setError("Sin conexión. La foto no se subió; probá de nuevo.");
     } finally {
       setBusy(null);
       if (input.current) input.current.value = "";
@@ -58,11 +64,14 @@ export function PhotoPanel({
       .filter((a): a is { scorecardId: string; strokes: (number | null)[] } => !!a);
     start(async () => {
       const r = await applyExtraction(roundId, assignments);
-      if (r.error) setError(r.error);
-      else {
-        setResult(null);
-        router.refresh();
+      if (!r.ok) {
+        setError(r.error);
+        return;
       }
+      haptics.success();
+      toast.success(`Cargamos ${fmtCount(r.data.strokes, "golpe")} en ${fmtCount(r.data.applied, "tarjeta")}`);
+      setResult(null);
+      router.refresh();
     });
   }
 
@@ -71,8 +80,12 @@ export function PhotoPanel({
       <ErrorBanner message={error} />
       <input ref={input} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="secondary" disabled={!!busy} onClick={() => input.current?.click()}>
-          {busy ?? "📷 Foto de la tarjeta"}
+        <Button variant="secondary" pending={!!busy} pendingLabel={busy} onClick={() => input.current?.click()}>
+          {busy ?? (
+            <>
+              <Camera /> Foto de la tarjeta
+            </>
+          )}
         </Button>
         {photos.map((p) =>
           p.url ? (
@@ -132,8 +145,8 @@ export function PhotoPanel({
             </div>
           ))}
           <div className="flex gap-2">
-            <Button disabled={pending || assign.every((a) => !a)} onClick={apply}>
-              {pending ? "Aplicando…" : "Cargar golpes"}
+            <Button pending={pending} pendingLabel="Cargando…" disabled={assign.every((a) => !a)} onClick={apply}>
+              Cargar golpes
             </Button>
             <Button variant="secondary" onClick={() => setResult(null)}>Descartar</Button>
           </div>

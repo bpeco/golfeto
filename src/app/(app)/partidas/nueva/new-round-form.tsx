@@ -30,6 +30,7 @@ export function NewRoundForm({
   const [selected, setSelected] = useState<Set<string>>(new Set([me.id]));
   const [guests, setGuests] = useState<{ name: string; hcp: string }[]>([]);
   const [error, setError] = useState<string>();
+  const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, start] = useTransition();
 
   const people = useMemo(() => {
@@ -64,9 +65,14 @@ export function NewRoundForm({
       playerIds: Array.from(selected),
       guests: guests.filter((g) => g.name.trim()).map((g) => ({ name: g.name, declaredHandicap: g.hcp ? Number(g.hcp.replace(",", ".")) : null })),
     };
+    setError(undefined);
+    setFields({});
     start(async () => {
       const r = await createRoundAndRedirect(input);
-      if (r?.error) setError(r.error);
+      if (r && !r.ok) {
+        setError(r.error);
+        setFields(r.fields ?? {});
+      }
     });
   }
 
@@ -76,6 +82,13 @@ export function NewRoundForm({
   return (
     <div className="space-y-5">
       <ErrorBanner message={error} />
+      {Object.keys(fields).length > 0 && (
+        <ul className="list-disc pl-5 text-sm text-destructive">
+          {Object.entries(fields).map(([k, v]) => (
+            <li key={k}>{k.startsWith("guests.") ? `Invitado ${Number(k.split(".")[1]) + 1}: ${v}` : v}</li>
+          ))}
+        </ul>
+      )}
       {usable.length < courses.length && (
         <p className="text-xs text-muted-foreground">Algunas canchas no aparecen porque no tienen tees cargados.</p>
       )}

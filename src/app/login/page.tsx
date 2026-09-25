@@ -1,3 +1,4 @@
+import { Notice } from "@/components/ui/notice";
 import { GoogleButton } from "./google-button";
 
 export default async function LoginPage({
@@ -15,9 +16,9 @@ export default async function LoginPage({
       </div>
       <GoogleButton next={next} />
       {error && (
-        <p className="text-sm text-destructive">
+        <Notice tone="error" className="w-full max-w-xs">
           No pudimos iniciar sesión. Probá de nuevo.
-        </p>
+        </Notice>
       )}
     </main>
   );

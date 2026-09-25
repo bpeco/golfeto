@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { resizeImage } from "@/lib/image-resize";
 import { readCourseCard } from "./photo-actions";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { ErrorBanner, Field, inputClass } from "@/components/ui/legacy";
 import { saveCourseAndRedirect } from "./actions";
 import type { CourseInput } from "./schema";
@@ -49,6 +50,8 @@ export function CourseForm({
       : [{ name: "Blancas", courseRating: "", slope: "", distances: {} }],
   );
   const [error, setError] = useState<string>();
+  const [notes, setNotes] = useState<string>();
+  const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, start] = useTransition();
   const fileInput = useRef<HTMLInputElement>(null);
   const [reading, setReading] = useState(false);
@@ -61,11 +64,11 @@ export function CourseForm({
       const fd = new FormData();
       fd.set("file", new File([await resizeImage(file, 2000)], "tarjeta.jpg", { type: "image/jpeg" }));
       const r = await readCourseCard(fd);
-      if (r.error || !r.card) {
-        setError(r.error ?? "No se pudo leer la tarjeta");
+      if (!r.ok) {
+        setError(r.error);
         return;
       }
-      const card = r.card;
+      const card = r.data;
       if (!name && card.courseName) setName(card.courseName);
       if (!club && card.club) setClub(card.club);
       const count = card.holes.length >= 18 ? 18 : 9;
@@ -90,7 +93,7 @@ export function CourseForm({
           })),
         );
       }
-      if (card.notes) setError(`Leído. Revisá: ${card.notes}`);
+      setNotes(card.notes ? `Leímos la tarjeta. Revisá: ${card.notes}` : "Leímos la tarjeta. Revisá los números antes de guardar.");
     } finally {
       setReading(false);
       if (fileInput.current) fileInput.current.value = "";
@@ -125,15 +128,28 @@ export function CourseForm({
           ),
         })),
     };
+    setError(undefined);
+    setFields({});
     start(async () => {
       const r = await saveCourseAndRedirect(courseId, input);
-      if (r?.error) setError(r.error);
+      if (r && !r.ok) {
+        setError(r.error);
+        setFields(r.fields ?? {});
+      }
     });
   }
 
   return (
     <div className="space-y-6">
       <ErrorBanner message={error} />
+      {Object.keys(fields).length > 0 && (
+        <ul className="list-disc pl-5 text-sm text-destructive">
+          {Object.entries(fields).map(([k, v]) => (
+            <li key={k}>{describeField(k)}: {v}</li>
+          ))}
+        </ul>
+      )}
+      {notes && <Notice tone="info">{notes}</Notice>}
       <div>
         <input ref={fileInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => readCard(e.target.files?.[0])} />
         <Button type="button" variant="secondary" disabled={reading} onClick={() => fileInput.current?.click()}>
@@ -275,4 +291,13 @@ export function CourseForm({
       </Button>
     </div>
   );
+}
+
+/** "holes.6.par" → "Hoyo 7, par"; "tees.1.slope" → "Tee 2, Slope". */
+function describeField(path: string) {
+  const [group, index, field] = path.split(".");
+  const names: Record<string, string> = { par: "par", strokeIndex: "Hcp", name: "nombre", courseRating: "CR", slope: "Slope", distances: "distancias" };
+  if (group === "holes" && index != null) return `Hoyo ${Number(index) + 1}${field ? `, ${names[field] ?? field}` : ""}`;
+  if (group === "tees" && index != null) return `Tee ${Number(index) + 1}${field ? `, ${names[field] ?? field}` : ""}`;
+  return { name: "Nombre", validFrom: "Fecha", holes: "Hoyos", tees: "Tees" }[group] ?? group;
 }

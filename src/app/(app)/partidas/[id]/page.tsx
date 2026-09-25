@@ -83,6 +83,8 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
             card={selected.card}
             isOwner={selected.card.playerId === me.id}
             courseHcp={selected.courseHcp}
+            rating={rating}
+            ownerIndex={handicaps.get(selected.card.playerId)?.effective ?? null}
           />
         </div>
       )}
