@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Shell } from "@/components/shell";
+import { PageHeader } from "@/components/ui/page-header";
+import { todayInArgentina } from "@/lib/dates";
 import { getCourse } from "@/lib/db/courses";
 import { CourseForm } from "../../course-form";
 
@@ -17,12 +18,11 @@ export default async function EditCoursePage({ params }: { params: Promise<{ id:
   const holeNumberById = new Map((v?.holes ?? []).map((h) => [h.id, h.number]));
 
   return (
-    <Shell title={`Editar ${course.name}`} back={`/canchas/${id}`}>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Guardar crea una versión nueva vigente desde la fecha elegida. Las partidas ya jugadas siguen atadas a la versión de su fecha.
-      </p>
+    <>
+      <PageHeader title={`Editar ${course.name}`} back={{ fallback: `/canchas/${id}` }} />
       <CourseForm
         courseId={id}
+        today={todayInArgentina()}
         initial={{
           name: course.name,
           club: course.club,
@@ -39,6 +39,6 @@ export default async function EditCoursePage({ params }: { params: Promise<{ id:
           })),
         }}
       />
-    </Shell>
+    </>
   );
 }

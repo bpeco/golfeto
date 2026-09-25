@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import { Shell } from "@/components/shell";
+import { PageHeader } from "@/components/ui/page-header";
+import { todayInArgentina } from "@/lib/dates";
 import { CourseForm } from "../course-form";
 
 export const metadata: Metadata = { title: "Nueva cancha" };
 
 export default function NewCoursePage() {
   return (
-    <Shell title="Nueva cancha" back="/canchas">
-      <CourseForm courseId={null} />
-    </Shell>
+    <>
+      <PageHeader title="Nueva cancha" back={{ fallback: "/canchas" }} />
+      <CourseForm courseId={null} today={todayInArgentina()} />
+    </>
   );
 }

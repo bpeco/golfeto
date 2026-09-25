@@ -1,24 +1,39 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { resizeImage } from "@/lib/image-resize";
-import { readCourseCard } from "./photo-actions";
+import { Camera, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CellInput } from "@/components/ui/cell-input";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
-import { ErrorBanner, Field, inputClass } from "@/components/ui/legacy";
+import { Section } from "@/components/ui/section";
+import { Select } from "@/components/ui/select";
+import { TeeDot } from "@/components/ui/tee-chip";
+import { Segmented } from "@/components/ui/toggle-group";
+import { resizeImage } from "@/lib/image-resize";
+import { parseDecimal } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { readCourseCard } from "./photo-actions";
 import { saveCourseAndRedirect } from "./actions";
 import type { CourseInput } from "./schema";
 
-type TeeDraft = { name: string; courseRating: string; slope: string; distances: Record<number, string> };
+type TeeDraft = { key: number; name: string; courseRating: string; slope: string; distances: Record<number, string> };
 type HoleDraft = { par: string; strokeIndex: string };
 
-const DEFAULT_TEES = ["Blancas", "Azules", "Amarillas", "Rojas"];
+const DEFAULT_TEES = ["Blancas", "Azules", "Amarillas", "Rojas", "Negras"];
 
+/**
+ * Alta de cancha o versión nueva. Se puede completar sola con la foto de la tarjeta impresa del
+ * club; después se revisa en la grilla (celdas de 44 px) y se guarda. Errores en su celda.
+ */
 export function CourseForm({
   courseId,
+  today,
   initial,
 }: {
   courseId: string | null;
+  today: string;
   initial?: {
     name: string;
     club: string | null;
@@ -31,8 +46,8 @@ export function CourseForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [club, setClub] = useState(initial?.club ?? "");
   const [city, setCity] = useState(initial?.city ?? "");
-  const [holesCount, setHolesCount] = useState<9 | 18>((initial?.holesCount as 9 | 18) ?? 18);
-  const [validFrom, setValidFrom] = useState(new Date().toISOString().slice(0, 10));
+  const [holesCount, setHolesCount] = useState<"18" | "9">(initial?.holesCount === 9 ? "9" : "18");
+  const [validFrom, setValidFrom] = useState(today);
   const [holes, setHoles] = useState<HoleDraft[]>(() =>
     Array.from({ length: 18 }, (_, i) => {
       const h = initial?.holes.find((x) => x.number === i + 1);
@@ -41,25 +56,33 @@ export function CourseForm({
   );
   const [tees, setTees] = useState<TeeDraft[]>(() =>
     initial?.tees.length
-      ? initial.tees.map((t) => ({
+      ? initial.tees.map((t, i) => ({
+          key: i,
           name: t.name,
-          courseRating: t.courseRating?.toString() ?? "",
+          courseRating: t.courseRating != null ? String(t.courseRating).replace(".", ",") : "",
           slope: t.slope?.toString() ?? "",
           distances: Object.fromEntries(Object.entries(t.distances).map(([k, v]) => [k, String(v)])),
         }))
-      : [{ name: "Blancas", courseRating: "", slope: "", distances: {} }],
+      : [{ key: 0, name: "Blancas", courseRating: "", slope: "", distances: {} }],
   );
   const [error, setError] = useState<string>();
   const [notes, setNotes] = useState<string>();
   const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, start] = useTransition();
-  const fileInput = useRef<HTMLInputElement>(null);
   const [reading, setReading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const count = Number(holesCount) as 9 | 18;
+  const visibleHoles = holes.slice(0, count);
+  const totalPar = visibleHoles.reduce((s, h) => s + (Number(h.par) || 0), 0);
+  const invalidTees = tees.map((_, ti) => Object.keys(fields).some((k) => k.startsWith(`tees.${ti}.`)));
 
   async function readCard(file: File | undefined) {
+    if (fileInput.current) fileInput.current.value = "";
     if (!file) return;
     setReading(true);
     setError(undefined);
+    setNotes(undefined);
     try {
       const fd = new FormData();
       fd.set("file", new File([await resizeImage(file, 2000)], "tarjeta.jpg", { type: "image/jpeg" }));
@@ -71,8 +94,7 @@ export function CourseForm({
       const card = r.data;
       if (!name && card.courseName) setName(card.courseName);
       if (!club && card.club) setClub(card.club);
-      const count = card.holes.length >= 18 ? 18 : 9;
-      setHolesCount(count);
+      setHolesCount(card.holes.length >= 18 ? "18" : "9");
       setHoles(
         Array.from({ length: 18 }, (_, i) => {
           const h = card.holes.find((x) => x.number === i + 1);
@@ -81,9 +103,10 @@ export function CourseForm({
       );
       if (card.tees.length) {
         setTees(
-          card.tees.map((t) => ({
+          card.tees.map((t, ti) => ({
+            key: Date.now() + ti,
             name: t.name,
-            courseRating: t.courseRating?.toString() ?? "",
+            courseRating: t.courseRating != null ? String(t.courseRating).replace(".", ",") : "",
             slope: t.slope?.toString() ?? "",
             distances: Object.fromEntries(
               t.distances
@@ -94,36 +117,35 @@ export function CourseForm({
         );
       }
       setNotes(card.notes ? `Leímos la tarjeta. Revisá: ${card.notes}` : "Leímos la tarjeta. Revisá los números antes de guardar.");
+    } catch {
+      setError("Sin conexión. No pudimos leer la tarjeta; probá de nuevo o cargala a mano.");
     } finally {
       setReading(false);
-      if (fileInput.current) fileInput.current.value = "";
     }
   }
 
-  const visibleHoles = holes.slice(0, holesCount);
-  const totalPar = visibleHoles.reduce((s, h) => s + (Number(h.par) || 0), 0);
+  function num(v: string) {
+    const n = parseDecimal(v);
+    return n == null ? null : n;
+  }
 
   function submit() {
     const input: CourseInput = {
       name,
       club: club || undefined,
       city: city || undefined,
-      holesCount,
+      holesCount: count,
       validFrom,
-      holes: visibleHoles.map((h, i) => ({
-        number: i + 1,
-        par: Number(h.par),
-        strokeIndex: h.strokeIndex ? Number(h.strokeIndex) : null,
-      })),
+      holes: visibleHoles.map((h, i) => ({ number: i + 1, par: Number(h.par), strokeIndex: h.strokeIndex ? Number(h.strokeIndex) : null })),
       tees: tees
         .filter((t) => t.name.trim())
         .map((t) => ({
           name: t.name,
-          courseRating: t.courseRating ? Number(t.courseRating) : null,
+          courseRating: num(t.courseRating),
           slope: t.slope ? Number(t.slope) : null,
           distances: Object.fromEntries(
             Object.entries(t.distances)
-              .filter(([n, v]) => Number(n) <= holesCount && v !== "")
+              .filter(([n, v]) => Number(n) <= count && v !== "")
               .map(([n, v]) => [n, Number(v)]),
           ),
         })),
@@ -140,93 +162,169 @@ export function CourseForm({
   }
 
   return (
-    <div className="space-y-6">
-      <ErrorBanner message={error} />
-      {Object.keys(fields).length > 0 && (
-        <ul className="list-disc pl-5 text-sm text-destructive">
-          {Object.entries(fields).map(([k, v]) => (
-            <li key={k}>{describeField(k)}: {v}</li>
+    <form
+      className="grid gap-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
+      <input ref={fileInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => readCard(e.target.files?.[0])} />
+      <div>
+        <Button variant="secondary" pending={reading} pendingLabel="Leyendo la tarjeta…" onClick={() => fileInput.current?.click()}>
+          <Camera /> Leer la tarjeta del club
+        </Button>
+        <p className="mt-2 text-sm text-muted-foreground">Sacale una foto a la tarjeta impresa (par, hándicap de hoyo, distancias, CR y Slope) y se completa todo.</p>
+      </div>
+      {notes && <Notice tone="info">{notes}</Notice>}
+      {error && <Notice tone="error">{error}</Notice>}
+
+      <Field label="Nombre de la cancha" error={fields.name}>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Miraflores" maxLength={120} />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Club" error={fields.club}>
+          <Input value={club} onChange={(e) => setClub(e.target.value)} placeholder="Miraflores CC" maxLength={120} />
+        </Field>
+        <Field label="Localidad" error={fields.city}>
+          <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Garín" maxLength={120} />
+        </Field>
+      </div>
+      <div className="grid grid-cols-2 items-start gap-3">
+        <div className="grid gap-1.5">
+          <span className="text-sm font-semibold">Hoyos</span>
+          <Segmented
+            label="Hoyos"
+            value={holesCount}
+            onValueChange={setHolesCount}
+            options={[
+              { value: "18", label: "18" },
+              { value: "9", label: "9" },
+            ]}
+          />
+        </div>
+        <Field label={courseId ? "Vigente desde" : "Fecha de alta"} error={fields.validFrom}>
+          <Input type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+        </Field>
+      </div>
+      {courseId && <Notice tone="info">Guardar crea una versión nueva vigente desde esa fecha. Las partidas anteriores conservan la versión vieja.</Notice>}
+
+      <Section title="Tees" className="mt-2">
+        <datalist id="tee-names">
+          {DEFAULT_TEES.map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
+        <ul className="divide-y divide-border border-y border-border">
+          {tees.map((t, ti) => (
+            <li key={t.key} className={cn("py-3", invalidTees[ti] && "bg-destructive/5")}>
+              <div className="grid grid-cols-[1fr_4.5rem_4.5rem_auto] items-end gap-2">
+                <Field label={<span className="inline-flex items-center gap-1.5"><TeeDot name={t.name} className="size-2.5" /> Tee {ti + 1}</span>} error={fields[`tees.${ti}.name`]}>
+                  <Input list="tee-names" value={t.name} placeholder="Blancas" onChange={(e) => setTees(tees.map((x) => (x.key === t.key ? { ...x, name: e.target.value } : x)))} />
+                </Field>
+                <Field label="CR">
+                  <Input
+                    inputMode="decimal"
+                    className="px-2 text-center"
+                    placeholder="70,3"
+                    value={t.courseRating}
+                    aria-invalid={!!fields[`tees.${ti}.courseRating`]}
+                    onChange={(e) => setTees(tees.map((x) => (x.key === t.key ? { ...x, courseRating: e.target.value } : x)))}
+                  />
+                </Field>
+                <Field label="Slope">
+                  <Input
+                    inputMode="numeric"
+                    className="px-2 text-center"
+                    placeholder="125"
+                    value={t.slope}
+                    aria-invalid={!!fields[`tees.${ti}.slope`]}
+                    onChange={(e) => setTees(tees.map((x) => (x.key === t.key ? { ...x, slope: e.target.value.replace(/\D/g, "") } : x)))}
+                  />
+                </Field>
+                <Button variant="ghost" size="icon" aria-label={`Quitar el tee ${ti + 1}`} disabled={tees.length === 1} onClick={() => setTees(tees.filter((x) => x.key !== t.key))}>
+                  <X />
+                </Button>
+              </div>
+              {(fields[`tees.${ti}.courseRating`] || fields[`tees.${ti}.slope`]) && (
+                <p className="mt-1 text-sm text-destructive">{fields[`tees.${ti}.courseRating`] ?? fields[`tees.${ti}.slope`]}</p>
+              )}
+            </li>
           ))}
         </ul>
-      )}
-      {notes && <Notice tone="info">{notes}</Notice>}
-      <div>
-        <input ref={fileInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => readCard(e.target.files?.[0])} />
-        <Button type="button" variant="secondary" disabled={reading} onClick={() => fileInput.current?.click()}>
-          {reading ? "Leyendo la tarjeta…" : "📷 Leer la tarjeta del club"}
+        {fields.tees && <p className="mt-2 text-sm text-destructive">{fields.tees}</p>}
+        <Button variant="ghost" className="mt-2" onClick={() => setTees([...tees, { key: Date.now(), name: "", courseRating: "", slope: "", distances: {} }])}>
+          <Plus /> Agregar tee
         </Button>
-        <p className="mt-1 text-xs text-muted-foreground">Sacale una foto a la tarjeta impresa (par, hándicap de hoyo, distancias) y se prellena todo.</p>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2">
-          <Field label="Nombre de la cancha">
-            <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="Miraflores" />
-          </Field>
-        </div>
-        <Field label="Club">
-          <input className={inputClass} value={club} onChange={(e) => setClub(e.target.value)} placeholder="Miraflores CC" />
-        </Field>
-        <Field label="Localidad">
-          <input className={inputClass} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Garín" />
-        </Field>
-        <Field label="Hoyos">
-          <select className={inputClass} value={holesCount} onChange={(e) => setHolesCount(Number(e.target.value) as 9 | 18)}>
-            <option value={18}>18</option>
-            <option value={9}>9</option>
-          </select>
-        </Field>
-        <Field label={courseId ? "Vigente desde" : "Fecha de alta"} hint={courseId ? "Las partidas anteriores conservan la versión vieja." : undefined}>
-          <input type="date" className={inputClass} value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
-        </Field>
-      </div>
+        <p className="mt-1 text-sm text-muted-foreground">CR y Slope salen de la tarjeta del club o de la AAG. Sin ellos no se puede firmar en ese tee.</p>
+      </Section>
 
-      <section>
-        <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="font-semibold">Hoyos</h2>
-          <span className="text-sm text-muted-foreground">Par {totalPar}</span>
-        </div>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-background text-xs text-muted-foreground">
-              <tr>
-                <th className="px-2 py-2 text-left">Hoyo</th>
-                <th className="px-2 py-2">Par</th>
-                <th className="px-2 py-2">Hcp</th>
+      <Section title="Hoyos" action={<span className="font-normal text-muted-foreground">Par {totalPar}</span>} className="mt-2">
+        {fields.holes && <p className="mb-2 text-sm text-destructive">{fields.holes}</p>}
+        <div className="-mx-4 overflow-x-auto px-4">
+          <table className="w-full min-w-max border-collapse text-base">
+            <caption className="sr-only">Par, hándicap de hoyo y metros por tee</caption>
+            <thead>
+              <tr className="border-b-2 border-line-strong text-sm text-muted-foreground">
+                <th scope="col" className="sticky left-0 z-10 h-10 w-11 bg-background pr-1 text-left font-semibold">
+                  Hoyo
+                </th>
+                <th scope="col" className="px-1 font-semibold">
+                  Par
+                </th>
+                <th scope="col" className="px-1 font-semibold">
+                  Hcp
+                </th>
                 {tees.map((t, ti) => (
-                  <th key={ti} className="px-2 py-2">{t.name || `Tee ${ti + 1}`}</th>
+                  <th key={t.key} scope="col" className="px-1 font-semibold">
+                    <span className="inline-flex items-center gap-1">
+                      <TeeDot name={t.name} className="size-2.5" />
+                      {t.name || `Tee ${ti + 1}`}
+                    </span>
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {visibleHoles.map((h, i) => (
-                <tr key={i} className="border-t border-border">
-                  <td className="px-2 py-1 font-medium">{i + 1}</td>
-                  <td className="px-1 py-1">
-                    <select
-                      className="w-14 rounded-lg border border-border bg-card px-1 py-1"
+                <tr key={i} className={cn("border-b border-border", i === 8 && count === 18 && "border-b-2 border-line-strong")}>
+                  <th scope="row" className="sticky left-0 z-10 bg-background pr-1 text-left font-display text-lg font-bold tabular-nums">
+                    {i + 1}
+                  </th>
+                  <td className="p-1">
+                    <Select
+                      size="sm"
+                      className="w-16"
+                      aria-label={`Par del hoyo ${i + 1}`}
+                      aria-invalid={!!fields[`holes.${i}.par`]}
                       value={h.par}
                       onChange={(e) => setHoles(holes.map((x, j) => (j === i ? { ...x, par: e.target.value } : x)))}
                     >
-                      {[3, 4, 5, 6].map((p) => <option key={p}>{p}</option>)}
-                    </select>
+                      {[3, 4, 5, 6].map((p) => (
+                        <option key={p}>{p}</option>
+                      ))}
+                    </Select>
                   </td>
-                  <td className="px-1 py-1">
-                    <input
-                      inputMode="numeric"
-                      className="w-12 rounded-lg border border-border bg-card px-1 py-1 text-center"
+                  <td className="p-1">
+                    <CellInput
+                      className="w-14"
+                      aria-label={`Hándicap del hoyo ${i + 1}`}
+                      title={fields[`holes.${i}.strokeIndex`]}
+                      aria-invalid={!!fields[`holes.${i}.strokeIndex`]}
                       value={h.strokeIndex}
-                      onChange={(e) => setHoles(holes.map((x, j) => (j === i ? { ...x, strokeIndex: e.target.value } : x)))}
+                      onChange={(e) => setHoles(holes.map((x, j) => (j === i ? { ...x, strokeIndex: e.target.value.replace(/\D/g, "").slice(0, 2) } : x)))}
                     />
                   </td>
                   {tees.map((t, ti) => (
-                    <td key={ti} className="px-1 py-1">
-                      <input
-                        inputMode="numeric"
+                    <td key={t.key} className="p-1">
+                      <CellInput
+                        className="w-16"
                         placeholder="m"
-                        className="w-16 rounded-lg border border-border bg-card px-1 py-1 text-center"
+                        aria-label={`Metros del hoyo ${i + 1} desde ${t.name || `el tee ${ti + 1}`}`}
+                        aria-invalid={!!fields[`tees.${ti}.distances.${i + 1}`]}
                         value={t.distances[i + 1] ?? ""}
                         onChange={(e) =>
-                          setTees(tees.map((x, j) => (j === ti ? { ...x, distances: { ...x.distances, [i + 1]: e.target.value } } : x)))
+                          setTees(tees.map((x) => (x.key === t.key ? { ...x, distances: { ...x.distances, [i + 1]: e.target.value.replace(/\D/g, "").slice(0, 3) } } : x)))
                         }
                       />
                     </td>
@@ -236,68 +334,36 @@ export function CourseForm({
             </tbody>
           </table>
         </div>
-      </section>
+        <HoleErrors fields={fields} />
+      </Section>
 
-      <section className="space-y-3">
-        <h2 className="font-semibold">Tees</h2>
-        {tees.map((t, ti) => (
-          <div key={ti} className="grid grid-cols-[1fr_auto_auto_auto] items-end gap-2 rounded-lg border border-border p-3">
-            <Field label="Nombre">
-              <input
-                list="tee-names"
-                className={inputClass}
-                value={t.name}
-                onChange={(e) => setTees(tees.map((x, j) => (j === ti ? { ...x, name: e.target.value } : x)))}
-              />
-            </Field>
-            <Field label="CR">
-              <input
-                inputMode="decimal"
-                className={`${inputClass} w-20`}
-                value={t.courseRating}
-                onChange={(e) => setTees(tees.map((x, j) => (j === ti ? { ...x, courseRating: e.target.value } : x)))}
-              />
-            </Field>
-            <Field label="Slope">
-              <input
-                inputMode="numeric"
-                className={`${inputClass} w-20`}
-                value={t.slope}
-                onChange={(e) => setTees(tees.map((x, j) => (j === ti ? { ...x, slope: e.target.value } : x)))}
-              />
-            </Field>
-            <button
-              type="button"
-              aria-label="Quitar tee"
-              className="pb-3 text-muted-foreground"
-              onClick={() => setTees(tees.filter((_, j) => j !== ti))}
-              disabled={tees.length === 1}
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-        <datalist id="tee-names">
-          {DEFAULT_TEES.map((n) => <option key={n} value={n} />)}
-        </datalist>
-        <Button type="button" variant="secondary" onClick={() => setTees([...tees, { name: "", courseRating: "", slope: "", distances: {} }])}>
-          + Agregar tee
-        </Button>
-        <p className="text-xs text-muted-foreground">CR y Slope salen de la tarjeta del club o de la AAG. Sin ellos no se puede calcular el hándicap en esta cancha.</p>
-      </section>
-
-      <Button className="w-full" disabled={pending || !name.trim()} onClick={submit}>
-        {pending ? "Guardando…" : courseId ? "Guardar nueva versión" : "Crear cancha"}
+      <Button type="submit" size="lg" pending={pending} pendingLabel="Guardando…" disabled={!name.trim()}>
+        {courseId ? "Guardar nueva versión" : "Crear cancha"}
       </Button>
-    </div>
+    </form>
   );
 }
 
-/** "holes.6.par" → "Hoyo 7, par"; "tees.1.slope" → "Tee 2, Slope". */
-function describeField(path: string) {
-  const [group, index, field] = path.split(".");
-  const names: Record<string, string> = { par: "par", strokeIndex: "Hcp", name: "nombre", courseRating: "CR", slope: "Slope", distances: "distancias" };
-  if (group === "holes" && index != null) return `Hoyo ${Number(index) + 1}${field ? `, ${names[field] ?? field}` : ""}`;
-  if (group === "tees" && index != null) return `Tee ${Number(index) + 1}${field ? `, ${names[field] ?? field}` : ""}`;
-  return { name: "Nombre", validFrom: "Fecha", holes: "Hoyos", tees: "Tees" }[group] ?? group;
+/** Resumen legible de los errores de la grilla (las celdas ya quedan marcadas en rojo). */
+function HoleErrors({ fields }: { fields: Record<string, string> }) {
+  const items = Object.entries(fields)
+    .map(([k, v]) => {
+      const hole = k.match(/^holes\.(\d+)\.(par|strokeIndex)$/);
+      if (hole) return `Hoyo ${Number(hole[1]) + 1}: ${v}`;
+      const dist = k.match(/^tees\.(\d+)\.distances\.(\d+)$/);
+      if (dist) return `Hoyo ${dist[2]}, tee ${Number(dist[1]) + 1}: ${v}`;
+      return null;
+    })
+    .filter(Boolean);
+  if (items.length === 0) return null;
+  return (
+    <Notice tone="error" className="mt-3" title="Revisá la grilla">
+      <ul className="list-disc pl-5">
+        {items.slice(0, 6).map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+        {items.length > 6 && <li>y {items.length - 6} más</li>}
+      </ul>
+    </Notice>
+  );
 }

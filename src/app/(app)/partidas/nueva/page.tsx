@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
 import { listCourses } from "@/lib/db/courses";
+import { todayInArgentina } from "@/lib/dates";
 import { NewRoundForm } from "./new-round-form";
 
 export const metadata: Metadata = { title: "Nueva partida" };
@@ -53,9 +54,4 @@ export default async function NewRoundPage({ searchParams }: { searchParams: Pro
       )}
     </>
   );
-}
-
-/** Hoy en Buenos Aires (toISOString daría mañana después de las 21). */
-function todayInArgentina() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date());
 }
