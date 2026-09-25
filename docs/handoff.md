@@ -54,7 +54,9 @@ pnpm dev            # http://localhost:3000 (necesita .env.local; ver .env.examp
 pnpm test           # vitest: motor WHS, matcher de nombres, rutas públicas, …
 pnpm typecheck && pnpm lint && pnpm build   # lo que corre Vercel (typecheck corre `next typegen` antes de tsc)
 pnpm bundle         # JS de primera carga por ruta (gzip), después de `pnpm build`; baseline en docs/perf/
-pnpm screenshots    # capturas de /login y /dev/playground (390 y 360 px, claro/oscuro/reducido) en $GALF_SHOTS_DIR
+pnpm screenshots    # capturas de /login y /dev/playground (390 y 360 px, claro/oscuro/reducido) en $GALF_SHOTS_DIR; falla si hay scroll horizontal
+pnpm lint:tokens    # clases fuera del sistema de tokens (nombres viejos, colores crudos, <12 px, rounded-2xl, sombras de kit)
+pnpm contrast       # contraste WCAG de los tokens en claro y oscuro; `-- --json` imprime los hex
 npx tsx scripts/seed.ts > seed.sql          # regenera el SQL del seed (ya aplicado; no reaplicar)
 ```
 
@@ -70,7 +72,10 @@ Sin `.env.local` se puede trabajar en UI con variables de mentira: `NEXT_PUBLIC_
 - Acciones de servidor en `actions.ts` por feature; esquemas zod en `schema.ts` aparte (un archivo `"use server"` solo puede exportar funciones async).
 - Embeds de Supabase con hint de FK cuando hay ambigüedad por las columnas de auditoría: `players!group_members_player_id_fkey(...)`.
 - Cálculo WHS solo en `src/lib/handicap/` (puro, testeado). La base guarda el snapshot en `scorecard_signatures`.
-- Gráficos: SVG propio en `src/components/index-chart.tsx`, paleta validada con el skill `dataviz`.
+- Gráficos: SVG propio en `src/components/index-chart.tsx`, paleta validada con el skill `dataviz` (tokens `--chart-1..8`).
+- UI (rediseño "tarjeta y pizarra", ver `DESIGN.md`): primitivas en `src/components/ui/` con forma de shadcn sobre `@base-ui/react` (polimorfismo con `render`, no `asChild`) + propias; `cn()` en `src/lib/utils.ts` (tailwind-merge extendido con `text-numeral*`, `tap`, `thumb`). Íconos `lucide-react` 1.x (verificar nombres en su `.d.ts`: la 1.x quitó alias, p. ej. `Trash2` → `Trash`). Animación solo con `m.*` de `motion/react-m` (LazyMotion strict en `src/app/providers.tsx`). Tema con `next-themes` (clase `.dark` en `<html>`, clave `galf:theme`). Toasts con `sonner`. Numerales animados con `@number-flow/react`. Versiones pineadas exactas en `package.json`: no actualizar a mitad del rediseño.
+- Clases de color solo sobre roles (`bg-card`, `text-muted-foreground`, `text-score-under`…): `pnpm lint:tokens` falla con nombres viejos o colores crudos, y `pnpm contrast` valida los pares de contraste de `globals.css` (claro y oscuro). Si cambia un token que también se usa como hex (theme-color, manifest, íconos), regenerar `src/lib/theme-colors.ts` con `pnpm contrast -- --json`.
+- **shadcn CLI:** `ui.shadcn.com` está bloqueado en las sesiones de Claude (403), así que `shadcn add` no funciona desde acá; `components.json` está listo para usarlo desde una red libre. Lo que agregue se re-estila a mano.
 
 ## Skills útiles para próximas sesiones
 

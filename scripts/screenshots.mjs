@@ -64,6 +64,7 @@ if (!base) {
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 let count = 0;
+let overflows = 0;
 try {
   for (const device of DEVICES) {
     for (const pass of PASSES) {
@@ -81,6 +82,25 @@ try {
         await page.goto(base + route, { waitUntil: "networkidle" });
         await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" }); // indicador de next dev
         await page.waitForTimeout(1400); // deja terminar el reveal del login
+        const overflow = await page.evaluate(() => {
+          const vw = document.documentElement.clientWidth;
+          if (document.documentElement.scrollWidth <= vw) return null;
+          const culprits = [];
+          for (const el of document.querySelectorAll("body *")) {
+            const r = el.getBoundingClientRect();
+            if (r.right <= vw + 1 || r.width === 0) continue;
+            let clipped = false;
+            for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+              if (getComputedStyle(a).overflowX !== "visible") clipped = true;
+            }
+            if (!clipped) culprits.push(`${el.tagName.toLowerCase()} "${(el.textContent ?? "").trim().slice(0, 30)}" (right ${Math.round(r.right)})`);
+          }
+          return culprits.slice(0, 5);
+        });
+        if (overflow) {
+          overflows++;
+          console.warn(`Scroll horizontal en ${route} a ${device.name} px: ${overflow.join("; ")}`);
+        }
         const slug = route.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "inicio";
         const prefix = `${slug}_${device.name}_${pass.name}`;
         await page.screenshot({ path: join(OUT, `${prefix}.png`), fullPage: true });
@@ -99,3 +119,7 @@ try {
   if (server) process.kill(-server.pid);
 }
 console.log(`${count} capturas en ${OUT}`);
+if (overflows) {
+  console.error(`${overflows} pantalla(s) con scroll horizontal.`);
+  process.exit(1);
+}

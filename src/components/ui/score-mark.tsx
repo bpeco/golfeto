@@ -5,10 +5,12 @@ import { useReducedMotion } from "motion/react";
 import { notationFor, notationLabel, type NotationShape } from "@/lib/score-notation";
 import { cn } from "@/lib/utils";
 
+// Grosor del trazo en unidades del viewBox (40): ~1,5 px en sm/md y ~3 px en lg. No se usa
+// vector-effect: non-scaling-stroke porque rompe el pathLength de la animación de dibujo.
 const SIZES = {
-  sm: { box: "size-9", text: "text-lg", stroke: 1.5 },
-  md: { box: "size-12", text: "text-2xl", stroke: 2 },
-  lg: { box: "size-36", text: "text-numeral-2xl", stroke: 3 },
+  sm: { box: "size-9", text: "text-lg", stroke: 1.7 },
+  md: { box: "size-12", text: "text-2xl", stroke: 1.7 },
+  lg: { box: "size-36", text: "text-numeral-2xl", stroke: 0.9 },
 } as const;
 
 const TONE = {
@@ -63,7 +65,7 @@ export function ScoreMark({
 }
 
 function Shape({ shape, strokeWidth, draw, drawKey }: { shape: NotationShape; strokeWidth: number; draw: boolean; drawKey: string }) {
-  const common = { strokeWidth, vectorEffect: "non-scaling-stroke" as const };
+  const common = { strokeWidth };
   const anim = draw
     ? { initial: { pathLength: 0 }, animate: { pathLength: 1 }, transition: { duration: 0.25, ease: [0.2, 0, 0, 1] as const } }
     : {};

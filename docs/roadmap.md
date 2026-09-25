@@ -55,7 +55,8 @@ Ideas surgidas del diseño, no comprometidas. Priorizar según lo que pida el gr
 Plan completo: `docs/plans/2026-09-25-rediseno-ui-ux.md` (contexto, decisiones, brief de diseño, arquitectura, fases, verificación). Rama de trabajo `claude/sleepy-wozniak-v86mqg`; producción (`claude/vigilant-bardeen-6iwzid`) no se toca hasta el merge. **Sin cambios en la base de datos**: lo que los necesite queda en "Requiere DB" más abajo. Si el dueño no está para las puertas de decisión, se toma la opción recomendada (variante A, tipografía A) y queda como provisional en `DESIGN.md`.
 
 - [x] Fase 0 — preparación (2026-09-25): merge de producción (ya no era fast-forward: la rama tenía el commit del plan), `pnpm typecheck` corre `next typegen` antes de `tsc` (sin `.next` fallaba por `LayoutProps`), `.env.example`, `pnpm bundle` + baseline en `docs/perf/bundle-baseline.md`, `pnpm screenshots` (playwright-core 1.56.1), playground `/dev/playground` con fixtures, `isPublicPath` (adelantado de la Fase 4), `PRODUCT.md`. `shadcn init` quedó para la Fase 1 (es donde el plan lo usa). **Impeccable no se pudo instalar**: el proxy de la sesión devuelve 403 al bajar el bundle firmado de skills y `impeccable.style` está bloqueado; `PRODUCT.md` se escribió a mano y el detector (`npx impeccable detect`, del paquete npm) sí corre. **El conector de Vercel da 403** en el team del proyecto: no se pudo setear `GALF_PLAYGROUND` en Preview; en su lugar el playground se habilita solo con `VERCEL_ENV=preview`
-- [ ] Fase 1 — fundamentos: tokens OKLCH, fuentes, primitivas propias y de shadcn, migración de clases, `lint:tokens`, `contrast`; **Puerta 1** (variante y tipografía → `DESIGN.md`)
+- [x] Fase 1 — fundamentos (2026-09-25): tokens OKLCH en tres capas (claro y oscuro, `pnpm contrast` en verde), Sofia Sans + Sofia Sans Extra Condensed, primitivas de forma shadcn **escritas a mano sobre `@base-ui/react` 1.8** (el CLI de shadcn no puede bajar el registro: `ui.shadcn.com` da 403 en el proxy; `components.json` queda listo) y primitivas propias (ScoreMark, Stepper, ScorecardGrid, Board, Leaderboard, …), `src/lib/format.ts` / `score-notation` / `tee-color` / `scorecard-totals` con tests, `ui.tsx` retirado (queda `ui/legacy.tsx` temporal), clases migradas, `pnpm lint:tokens`, playground con todas las secciones y las 3 variantes. Desvíos del plan: tamaños `text-numeral*` en vez de `text-board*` (chocaban con el color `board`); `Select` nativo en vez del de Base UI (mejor en el teléfono); `bg-accent` permitido (es el tinte de hover); `/impeccable shape` no se pudo correr (skill no instalado)
+- [x] **Puerta 1 — PROVISIONAL** (decidida por el agente con la opción recomendada, 2026-09-25): **variante A** "tarjeta y pizarra" + **tipografía A**. El chequeo tabular del playground descarta la C (Big Shoulders no tiene cifras tabulares). **Para revisar:** abrir `/dev/playground?variant=A|B|C` en el preview y confirmar o pedir cambios; al confirmar, borrar B y C de `src/app/dev/playground/variants.tsx`
 - [ ] Fase 2 — shell y navegación: route group `(app)`, barra con 5 pestañas y estado activo, `/grupos`, skeletons, `error.tsx`/`not-found.tsx`, títulos, View Transitions
 - [ ] Fase 3 — feedback: `ActionResult`, zod en español, `useActionState`, toasts, `ConfirmSheet` (firmar / desfirmar con motivo), firma que muestra el índice nuevo, autosave con rollback, haptics, `/unirse` con botón "Unirme"
 - [ ] Fase 4 — arranque y marca: marca (G con círculo de birdie), íconos 192/512/maskable/apple, splash iOS, manifest, `isPublicPath`, reveal de login y de primer Inicio
@@ -63,7 +64,14 @@ Plan completo: `docs/plans/2026-09-25-rediseno-ui-ux.md` (contexto, decisiones, 
 - [ ] Fase 6 — accesibilidad, bundle, docs (`DESIGN.md`, `docs/design.md`, ADR-0004, handoff, README); crítica con Impeccable / plugin Design; `code-review`
 - [ ] **Puerta 2** — partida real de prueba del dueño con la PWA instalada; ajustes
 
-Requiere DB (excluido del rediseño; avisar al dueño antes): `peek_invite(code)` para mostrar el nombre del grupo antes de unirse; notificación de firma pendiente; preferencias en el servidor (el tema queda en localStorage); conflicto entre dos teléfonos anotando la misma tarjeta.
+### Requiere DB (excluido del rediseño; avisar al dueño antes de tocar la base)
+
+- [ ] `peek_invite(code)` (RPC security definer): mostrar el nombre del grupo en `/unirse/<code>` antes de unirse. Hoy RLS no deja leer `groups` a un no-miembro
+- [ ] Notificación "te cargaron golpes, falta tu firma" (también en Fase 3)
+- [ ] Preferencias de usuario en el servidor (el tema queda en localStorage del teléfono)
+- [ ] Conflicto entre dos teléfonos anotando la misma tarjeta (hoy gana la última escritura)
+- [ ] Estadísticas del grupo en una sola consulta (una vista); innecesario con 5 golfistas
+- [ ] Ranking por cancha, Stableford / match play, edición de obstáculos, vincular invitado desde el grupo (Fase 3)
 
 ## Deuda técnica conocida
 
