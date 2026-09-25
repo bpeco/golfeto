@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Shell } from "@/components/shell";
-import { Empty, LinkButton } from "@/components/ui/legacy";
+import Link from "next/link";
+import { LandPlot } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
 import { listCourses } from "@/lib/db/courses";
@@ -31,18 +34,28 @@ export default async function NewRoundPage({ searchParams }: { searchParams: Pro
       .map((p) => ({ id: p.id, name: p.display_name })),
   }));
 
-  if (courses.length === 0) {
-    return (
-      <Shell title="Nueva partida" back="/">
-        <Empty>Primero hay que cargar una cancha.</Empty>
-        <LinkButton href="/canchas/nueva" className="mt-4 w-full">Cargar cancha</LinkButton>
-      </Shell>
-    );
-  }
-
   return (
-    <Shell title="Nueva partida" back="/">
-      <NewRoundForm me={{ id: me.id, name: me.displayName }} courses={courses} groups={groups} preselectedGroup={grupo ?? null} />
-    </Shell>
+    <>
+      <PageHeader title="Nueva partida" back={{ fallback: grupo ? `/grupos/${grupo}` : "/partidas" }} />
+      {courses.length === 0 ? (
+        <EmptyState
+          icon={LandPlot}
+          title="Primero hay que cargar una cancha"
+          body="Con la foto de la tarjeta del club se completa sola."
+          action={
+            <Link href="/canchas/nueva" className={buttonVariants()}>
+              Cargar cancha
+            </Link>
+          }
+        />
+      ) : (
+        <NewRoundForm today={todayInArgentina()} me={{ id: me.id, name: me.displayName }} courses={courses} groups={groups} preselectedGroup={grupo ?? null} />
+      )}
+    </>
   );
+}
+
+/** Hoy en Buenos Aires (toISOString daría mañana después de las 21). */
+function todayInArgentina() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date());
 }

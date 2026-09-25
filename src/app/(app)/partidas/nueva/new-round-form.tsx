@@ -1,20 +1,35 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ErrorBanner, Field, inputClass } from "@/components/ui/legacy";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field } from "@/components/ui/field";
+import { Initials } from "@/components/ui/initials";
+import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/ui/notice";
+import { Section } from "@/components/ui/section";
+import { Select } from "@/components/ui/select";
+import { TeeDot } from "@/components/ui/tee-chip";
+import { Textarea } from "@/components/ui/textarea";
+import { Segmented } from "@/components/ui/toggle-group";
 import type { CourseSummary } from "@/lib/db/courses";
+import { parseDecimal } from "@/lib/format";
 import { createRoundAndRedirect } from "../actions";
 import type { RoundInput } from "../schema";
 
 type Group = { id: string; name: string; members: { id: string; name: string }[] };
+type Guest = { key: number; name: string; hcp: string };
 
 export function NewRoundForm({
   me,
   courses,
   groups,
   preselectedGroup,
+  today,
 }: {
+  today: string;
   me: { id: string; name: string };
   courses: CourseSummary[];
   groups: Group[];
@@ -24,21 +39,31 @@ export function NewRoundForm({
   const [courseId, setCourseId] = useState(usable[0]?.id ?? "");
   const course = usable.find((c) => c.id === courseId);
   const [teeId, setTeeId] = useState(course?.tees[0]?.id ?? "");
-  const [playedOn, setPlayedOn] = useState(new Date().toISOString().slice(0, 10));
+  const [playedOn, setPlayedOn] = useState(today);
   const [holesPlayed, setHolesPlayed] = useState<"completa" | "ida" | "vuelta">("completa");
-  const [loops, setLoops] = useState<1 | 2>(2);
-  const [selected, setSelected] = useState<Set<string>>(new Set([me.id]));
-  const [guests, setGuests] = useState<{ name: string; hcp: string }[]>([]);
+  const [loops, setLoops] = useState<"2" | "1">("2");
+  const [selected, setSelected] = useState<Set<string>>(() => {
+    const g = groups.find((x) => x.id === preselectedGroup);
+    return new Set([me.id, ...(g?.members.map((m) => m.id) ?? [])]);
+  });
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [notes, setNotes] = useState("");
   const [error, setError] = useState<string>();
   const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, start] = useTransition();
 
   const people = useMemo(() => {
-    const map = new Map<string, string>([[me.id, `${me.name} (vos)`]]);
+    const map = new Map<string, string>([[me.id, me.name]]);
     const ordered = preselectedGroup ? [...groups].sort((a) => (a.id === preselectedGroup ? -1 : 1)) : groups;
     for (const g of ordered) for (const m of g.members) if (!map.has(m.id)) map.set(m.id, m.name);
     return Array.from(map, ([id, name]) => ({ id, name }));
   }, [groups, me, preselectedGroup]);
+
+  const tee = course?.tees.find((t) => t.id === teeId);
+  const is9 = course?.version?.holesCount === 9;
+  const namedGuests = guests.filter((g) => g.name.trim());
+  const total = selected.size + namedGuests.length;
+  const blocker = !course ? "Elegí una cancha" : !teeId ? "Elegí el tee" : total === 0 ? "Elegí al menos un jugador" : null;
 
   function pickCourse(id: string) {
     setCourseId(id);
@@ -47,23 +72,24 @@ export function NewRoundForm({
     if (c?.version?.holesCount === 9) setHolesPlayed("completa");
   }
 
-  function toggle(id: string) {
+  function toggle(id: string, on: boolean) {
     const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    if (on) next.add(id);
+    else next.delete(id);
     setSelected(next);
   }
 
   function submit() {
-    if (!course?.version) return;
+    if (!course?.version || blocker) return;
     const input: RoundInput = {
       courseVersionId: course.version.id,
       teeSetId: teeId,
       playedOn,
-      holesPlayed: course.version.holesCount === 9 ? "completa" : holesPlayed,
-      loops: course.version.holesCount === 9 ? loops : 1,
+      holesPlayed: is9 ? "completa" : holesPlayed,
+      loops: is9 ? (Number(loops) as 1 | 2) : 1,
       playerIds: Array.from(selected),
-      guests: guests.filter((g) => g.name.trim()).map((g) => ({ name: g.name, declaredHandicap: g.hcp ? Number(g.hcp.replace(",", ".")) : null })),
+      guests: namedGuests.map((g) => ({ name: g.name, declaredHandicap: g.hcp.trim() ? (parseDecimal(g.hcp) ?? Number.NaN) : null })),
+      notes: notes.trim() || undefined,
     };
     setError(undefined);
     setFields({});
@@ -71,106 +97,166 @@ export function NewRoundForm({
       const r = await createRoundAndRedirect(input);
       if (r && !r.ok) {
         setError(r.error);
-        setFields(r.fields ?? {});
+        setFields(remapGuestFields(r.fields ?? {}, guests, namedGuests));
       }
     });
   }
 
-  const tee = course?.tees.find((t) => t.id === teeId);
-  const is9 = course?.version?.holesCount === 9;
-
   return (
-    <div className="space-y-5">
-      <ErrorBanner message={error} />
-      {Object.keys(fields).length > 0 && (
-        <ul className="list-disc pl-5 text-sm text-destructive">
-          {Object.entries(fields).map(([k, v]) => (
-            <li key={k}>{k.startsWith("guests.") ? `Invitado ${Number(k.split(".")[1]) + 1}: ${v}` : v}</li>
-          ))}
-        </ul>
-      )}
-      {usable.length < courses.length && (
-        <p className="text-xs text-muted-foreground">Algunas canchas no aparecen porque no tienen tees cargados.</p>
-      )}
-      <Field label="Cancha">
-        <select className={inputClass} value={courseId} onChange={(e) => pickCourse(e.target.value)}>
+    <form
+      className="grid gap-6 pb-[calc(6rem+env(safe-area-inset-bottom))]"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
+      {error && <Notice tone="error">{error}</Notice>}
+      {usable.length < courses.length && <Notice tone="info">Algunas canchas no aparecen porque no tienen tees cargados.</Notice>}
+
+      <Field label="Cancha" error={fields.courseVersionId}>
+        <Select value={courseId} onChange={(e) => pickCourse(e.target.value)}>
           {usable.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}{c.club ? ` · ${c.club}` : ""}</option>
+            <option key={c.id} value={c.id}>
+              {c.name}
+              {c.club && c.club !== c.name ? ` — ${c.club}` : ""}
+            </option>
           ))}
-        </select>
+        </Select>
       </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Tee" hint={tee && tee.courseRating == null ? "Sin CR/Slope: no se podrá firmar" : undefined}>
-          <select className={inputClass} value={teeId} onChange={(e) => setTeeId(e.target.value)}>
-            {course?.tees.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Fecha">
-          <input type="date" className={inputClass} value={playedOn} onChange={(e) => setPlayedOn(e.target.value)} />
-        </Field>
+
+      {course && (
+        <div className="grid gap-1.5">
+          <span className="text-sm font-semibold">Tee</span>
+          <Segmented
+            label="Tee"
+            value={teeId}
+            onValueChange={setTeeId}
+            options={course.tees.map((t) => ({
+              value: t.id,
+              label: (
+                <span className="inline-flex items-center gap-1.5">
+                  <TeeDot name={t.name} className="size-2.5" />
+                  {t.name}
+                </span>
+              ),
+            }))}
+          />
+          {tee && (tee.courseRating == null || tee.slope == null) && (
+            <Notice tone="warn">Las {tee.name} no tienen CR y Slope: se puede jugar, pero para firmar hay que cargarlos en la cancha.</Notice>
+          )}
+        </div>
+      )}
+
+      <Field label="Fecha" error={fields.playedOn}>
+        <Input type="date" value={playedOn} max={today} onChange={(e) => setPlayedOn(e.target.value)} />
+      </Field>
+
+      <div className="grid gap-1.5">
+        <span className="text-sm font-semibold">{is9 ? "Vueltas" : "Hoyos"}</span>
         {is9 ? (
-          <Field label="Vueltas">
-            <select className={inputClass} value={loops} onChange={(e) => setLoops(Number(e.target.value) as 1 | 2)}>
-              <option value={2}>Ida y vuelta (18)</option>
-              <option value={1}>Una vuelta (9)</option>
-            </select>
-          </Field>
+          <Segmented
+            label="Vueltas"
+            value={loops}
+            onValueChange={setLoops}
+            options={[
+              { value: "2", label: "Ida y vuelta (18)" },
+              { value: "1", label: "Una vuelta (9)" },
+            ]}
+          />
         ) : (
-          <Field label="Hoyos">
-            <select className={inputClass} value={holesPlayed} onChange={(e) => setHolesPlayed(e.target.value as typeof holesPlayed)}>
-              <option value="completa">18 hoyos</option>
-              <option value="ida">Ida (1–9)</option>
-              <option value="vuelta">Vuelta (10–18)</option>
-            </select>
-          </Field>
+          <Segmented
+            label="Hoyos"
+            value={holesPlayed}
+            onValueChange={setHolesPlayed}
+            options={[
+              { value: "completa", label: "18 hoyos" },
+              { value: "ida", label: "Ida (1–9)" },
+              { value: "vuelta", label: "Vuelta (10–18)" },
+            ]}
+          />
         )}
       </div>
 
-      <section>
-        <h2 className="mb-2 text-sm font-medium">Jugadores</h2>
-        <div className="flex flex-wrap gap-2">
+      <Section title="Jugadores" className="mt-2">
+        {fields.players && <p className="mb-2 text-sm text-destructive">{fields.players}</p>}
+        <ul className="divide-y divide-border border-y border-border">
           {people.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => toggle(p.id)}
-              className={`rounded-full border px-3 py-1.5 text-sm ${
-                selected.has(p.id) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"
-              }`}
-            >
-              {p.name}
-            </button>
+            <li key={p.id}>
+              <label className="flex min-h-14 cursor-pointer items-center gap-3 py-2">
+                <Checkbox checked={selected.has(p.id)} onCheckedChange={(on) => toggle(p.id, on)} />
+                <Initials name={p.name} />
+                <span className="flex-1 truncate text-base font-semibold">{p.name}</span>
+                {p.id === me.id && <Badge tone="outline">Vos</Badge>}
+              </label>
+            </li>
           ))}
+        </ul>
+        {groups.length === 0 && <p className="mt-2 text-sm text-muted-foreground">No estás en ningún grupo: podés sumar invitados.</p>}
+      </Section>
+
+      <Section title="Invitados" className="mt-2">
+        <p className="-mt-1 mb-3 text-sm text-muted-foreground">Sin cuenta: nombre y, si lo saben, su hándicap.</p>
+        {guests.length > 0 && (
+          <ul className="mb-3 grid gap-3">
+            {guests.map((g, i) => (
+              <li key={g.key}>
+                <div className="flex items-start gap-2">
+                  <Input
+                    aria-label={`Nombre del invitado ${i + 1}`}
+                    placeholder="Nombre"
+                    value={g.name}
+                    aria-invalid={!!fields[`guest-${g.key}-name`]}
+                    onChange={(e) => setGuests(guests.map((x) => (x.key === g.key ? { ...x, name: e.target.value } : x)))}
+                  />
+                  <Input
+                    aria-label={`Hándicap del invitado ${i + 1}`}
+                    placeholder="Hcp"
+                    inputMode="decimal"
+                    className="w-20 shrink-0"
+                    value={g.hcp}
+                    aria-invalid={!!fields[`guest-${g.key}-hcp`]}
+                    onChange={(e) => setGuests(guests.map((x) => (x.key === g.key ? { ...x, hcp: e.target.value } : x)))}
+                  />
+                  <Button variant="ghost" size="icon" aria-label={`Quitar al invitado ${i + 1}`} onClick={() => setGuests(guests.filter((x) => x.key !== g.key))}>
+                    <X />
+                  </Button>
+                </div>
+                {(fields[`guest-${g.key}-name`] || fields[`guest-${g.key}-hcp`]) && (
+                  <p className="mt-1 text-sm text-destructive">{fields[`guest-${g.key}-name`] ?? fields[`guest-${g.key}-hcp`]}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        <Button variant="ghost" onClick={() => setGuests([...guests, { key: Date.now(), name: "", hcp: "" }])}>
+          <Plus /> Agregar invitado
+        </Button>
+      </Section>
+
+      <Field label="Notas" hint="Opcional: viento, estado de los greens, lo que quieran recordar." error={fields.notes}>
+        <Textarea value={notes} maxLength={500} onChange={(e) => setNotes(e.target.value)} />
+      </Field>
+
+      <div className="fixed inset-x-0 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] z-30 border-t border-border bg-background/95 shadow-raised backdrop-blur-md supports-[not(backdrop-filter:blur(0))]:bg-background">
+        <div className="mx-auto w-full max-w-lg px-4 py-3">
+          <Button type="submit" size="lg" className="w-full" disabled={!!blocker} pending={pending} pendingLabel="Creando…">
+            Crear partida{total > 0 ? ` con ${total}` : ""}
+          </Button>
+          {blocker && <p className="mt-1.5 text-center text-sm text-muted-foreground">{blocker}</p>}
         </div>
-        {groups.length === 0 && <p className="mt-2 text-xs text-muted-foreground">No estás en ningún grupo; podés sumar invitados.</p>}
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium">Invitados (sin cuenta)</h2>
-        {guests.map((g, i) => (
-          <div key={i} className="flex gap-2">
-            <input
-              className={inputClass}
-              placeholder="Nombre"
-              value={g.name}
-              onChange={(e) => setGuests(guests.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
-            />
-            <input
-              className={`${inputClass} w-24`}
-              placeholder="Hcp"
-              inputMode="decimal"
-              value={g.hcp}
-              onChange={(e) => setGuests(guests.map((x, j) => (j === i ? { ...x, hcp: e.target.value } : x)))}
-            />
-            <button type="button" className="text-muted-foreground" onClick={() => setGuests(guests.filter((_, j) => j !== i))}>✕</button>
-          </div>
-        ))}
-        <Button type="button" variant="secondary" onClick={() => setGuests([...guests, { name: "", hcp: "" }])}>+ Invitado</Button>
-      </section>
-
-      <Button className="w-full" disabled={pending || !course || !teeId || selected.size + guests.length === 0} onClick={submit}>
-        {pending ? "Creando…" : "Crear partida"}
-      </Button>
-    </div>
+      </div>
+    </form>
   );
+}
+
+/** Los errores del servidor vienen por índice entre los invitados con nombre; se pasan a la fila. */
+function remapGuestFields(fields: Record<string, string>, all: Guest[], named: Guest[]) {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    const m = k.match(/^guests\.(\d+)\.(name|declaredHandicap)$/);
+    const guest = m ? named[Number(m[1])] : undefined;
+    if (guest && all.includes(guest)) out[`guest-${guest.key}-${m![2] === "name" ? "name" : "hcp"}`] = v;
+    else out[k] = v;
+  }
+  return out;
 }
