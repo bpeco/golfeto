@@ -19,7 +19,7 @@ const PhotoViewer = dynamic(() => import("./photo-viewer"), { ssr: false });
 export type Step =
   | { kind: "idle" }
   | { kind: "uploading"; preview: string }
-  | { kind: "reading"; preview: string; photoId: string; since: number }
+  | { kind: "reading"; preview: string; photoId: string }
   | { kind: "review"; result: ExtractionResult }
   | { kind: "error"; message: string; photoId?: string; preview?: string };
 
@@ -69,7 +69,7 @@ export function PhotoFlow({
   const { input, pickPhoto } = usePhotoPicker((file) => void onFile(file));
 
   async function read(photoId: string, preview: string) {
-    setStep({ kind: "reading", preview, photoId, since: Date.now() });
+    setStep({ kind: "reading", preview, photoId });
     try {
       const r = await readScorecardPhoto(roundId, photoId);
       if (!r.ok) return setStep({ kind: "error", message: r.error, photoId, preview });

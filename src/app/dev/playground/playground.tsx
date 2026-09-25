@@ -40,6 +40,7 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import { useConfirm } from "@/components/ui/use-confirm";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { estimateSignature } from "@/lib/sign-estimate";
+import PhotoSheet from "@/app/(app)/partidas/[id]/photo-sheet";
 import { SignSheet } from "@/app/(app)/partidas/[id]/sign-sheet";
 import { archivo, bigShoulders, publicSans } from "./fonts";
 import { ME_ID, courseDetail, courseHandicaps, groups, players, recentRounds, round } from "./fixtures";
@@ -597,11 +598,19 @@ function Grids() {
   );
 }
 
+// Una tarjeta de papel dibujada (grilla) para la vista previa de la foto.
+const CARD_PREVIEW =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 120"><rect width="90" height="120" fill="#f4f1e8"/>${Array.from({ length: 11 }, (_, i) => `<line x1="8" x2="82" y1="${14 + i * 9}" y2="${14 + i * 9}" stroke="#8a8f86" stroke-width="0.6"/>`).join("")}${Array.from({ length: 5 }, (_, i) => `<line y1="14" y2="104" x1="${8 + i * 18.5}" x2="${8 + i * 18.5}" stroke="#8a8f86" stroke-width="0.6"/>`).join("")}</svg>`,
+  );
+
 // ——— Overlays ———
 
 function Overlays() {
   const confirm = useConfirm();
   const [signOpen, setSignOpen] = useState(false);
+  const [photoStep, setPhotoStep] = useState<"idle" | "uploading" | "reading">("idle");
   const bauti = round.scorecards.find((c) => c.id === "card-bauti")!;
   const estimate = estimateSignature(round.positions, { ...bauti.scores, 13: { strokes: 5, pickedUp: false } }, { courseRating: 70.3, slope: 125, par: 71, holesInRound: 18 }, 21.3);
   return (
@@ -624,6 +633,24 @@ function Overlays() {
       <Button variant="secondary" onClick={() => setSignOpen(true)}>
         Firmar (de mentira)
       </Button>
+      <Button variant="secondary" onClick={() => setPhotoStep("reading")}>
+        Foto: leyendo
+      </Button>
+      <PhotoSheet
+        step={photoStep === "idle" ? { kind: "idle" } : { kind: photoStep, preview: CARD_PREVIEW, photoId: "foto-1" }}
+        players={[]}
+        holesInRound={18}
+        assign={[]}
+        rows={[]}
+        pending={false}
+        onAssign={() => {}}
+        onCell={() => {}}
+        onRetry={() => {}}
+        onPickPhoto={() => {}}
+        onApply={() => {}}
+        onDiscard={() => {}}
+        onClose={() => setPhotoStep("idle")}
+      />
       <SignSheet
         open={signOpen}
         onOpenChange={setSignOpen}
