@@ -3,13 +3,12 @@
 import { useRef, type ChangeEvent } from "react";
 
 /**
- * Elegir una foto de dos maneras: la cámara (`capture`, abre directo la cámara trasera) o la
- * galería (sin `capture`: en iPhone y Android abre el selector de fotos). Devuelve los inputs
- * ocultos para poner en el árbol y las dos acciones para los botones.
+ * Elegir una foto. Sin `capture` a propósito: el sistema ofrece sacarla en el momento, la
+ * fototeca o un archivo (iPhone y Android), así que alcanza con un solo botón. Devuelve el input
+ * oculto para poner en el árbol y la acción para el botón.
  */
 export function usePhotoPicker(onFile: (file: File) => void) {
-  const camera = useRef<HTMLInputElement>(null);
-  const gallery = useRef<HTMLInputElement>(null);
+  const ref = useRef<HTMLInputElement>(null);
 
   function handle(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -17,16 +16,8 @@ export function usePhotoPicker(onFile: (file: File) => void) {
     if (file) onFile(file);
   }
 
-  const inputs = (
-    <>
-      <input ref={camera} type="file" accept="image/*" capture="environment" className="hidden" onChange={handle} />
-      <input ref={gallery} type="file" accept="image/*" className="hidden" onChange={handle} />
-    </>
-  );
-
   return {
-    inputs,
-    takePhoto: () => camera.current?.click(),
-    pickPhoto: () => gallery.current?.click(),
+    input: <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handle} />,
+    pickPhoto: () => ref.current?.click(),
   };
 }

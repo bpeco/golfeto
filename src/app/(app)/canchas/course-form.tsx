@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Camera, Images, Plus, X } from "lucide-react";
+import { Images, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CellInput } from "@/components/ui/cell-input";
 import { Field } from "@/components/ui/field";
@@ -123,7 +123,7 @@ export function CourseForm({
     }
   }
 
-  const { inputs: photoInputs, takePhoto, pickPhoto } = usePhotoPicker((file) => void readCard(file));
+  const { input: photoInput, pickPhoto } = usePhotoPicker((file) => void readCard(file));
 
   function num(v: string) {
     const n = parseDecimal(v);
@@ -172,18 +172,12 @@ export function CourseForm({
         submit();
       }}
     >
-      {photoInputs}
+      {photoInput}
       <div>
-        <span className="text-sm font-semibold">Leer la tarjeta del club</span>
-        <div className="mt-1.5 grid grid-cols-2 gap-2">
-          <Button variant="secondary" pending={reading} pendingLabel="Leyendo…" onClick={takePhoto}>
-            <Camera /> Sacar foto
-          </Button>
-          <Button variant="secondary" disabled={reading} onClick={pickPhoto}>
-            <Images /> De la galería
-          </Button>
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">Una foto de la tarjeta impresa (par, hándicap de hoyo, distancias, CR y Slope) y se completa todo.</p>
+        <Button variant="secondary" pending={reading} pendingLabel="Leyendo la tarjeta…" onClick={pickPhoto}>
+          <Images /> Cargar tarjeta del club
+        </Button>
+        <p className="mt-2 text-sm text-muted-foreground">Una foto de la tarjeta impresa (en el momento o de la galería: par, hándicap de hoyo, distancias, CR y Slope) y se completa todo.</p>
       </div>
       {notes && <Notice tone="info">{notes}</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
