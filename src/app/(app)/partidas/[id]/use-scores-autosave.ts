@@ -81,15 +81,19 @@ function createEngine(
   let lastFailure: { cardId: string; position: number; value: HoleScore } | null = null;
 
   const key = (cardId: string, position: number) => `${cardId}|${position}`;
-  const report = () => io.report([...new Set([...timers.keys(), ...inFlight])], !!lastFailure);
+  // Pendiente = con timer, en vuelo, o esperando que termine el guardado anterior del mismo hoyo.
+  const pendingKeys = () => [...new Set([...timers.keys(), ...inFlight, ...queued.keys()])];
+  const report = () => io.report(pendingKeys(), !!lastFailure);
   const setOne = (cardId: string, position: number, value: HoleScore) =>
     io.setScores((s) => ({ ...s, [cardId]: { ...s[cardId], [position]: value } }));
 
+  // Un solo guardado en vuelo por hoyo: si llega otro cambio, espera y sale al terminar el
+  // anterior (así el último valor es el que queda en la base y en pantalla).
   async function send(cardId: string, position: number) {
     const k = key(cardId, position);
     timers.delete(k);
     const value = queued.get(k);
-    if (!value) return report();
+    if (!value || inFlight.has(k)) return report();
     queued.delete(k);
     inFlight.add(k);
     report();
@@ -105,7 +109,7 @@ function createEngine(
       if (lastFailure && key(lastFailure.cardId, lastFailure.position) === k) lastFailure = null;
     } else {
       // Rollback, salvo que ya haya un cambio más nuevo de ese hoyo esperando.
-      if (!queued.has(k)) setOne(cardId, position, confirmed[cardId]?.[position] ?? EMPTY);
+      if (!queued.has(k) && !timers.has(k)) setOne(cardId, position, confirmed[cardId]?.[position] ?? EMPTY);
       lastFailure = { cardId, position, value };
       toast.error(`No se guardó el ${options.holeLabel(cardId, position)}`, {
         id: `save-${k}`,
@@ -113,6 +117,8 @@ function createEngine(
         action: { label: "Reintentar", onClick: () => update(cardId, position, value) },
       });
     }
+    // Un cambio más nuevo que esperaba a este (su timer ya venció): sale ahora.
+    if (queued.has(k) && !timers.has(k)) return send(cardId, position);
     report();
   }
 
@@ -141,7 +147,7 @@ function createEngine(
   }
 
   function syncFromServer(server: CardScores) {
-    const busy = new Set([...timers.keys(), ...inFlight].map((k) => k.split("|")[0]));
+    const busy = new Set(pendingKeys().map((k) => k.split("|")[0]));
     const fresh: CardScores = {};
     for (const [cardId, s] of Object.entries(server)) {
       if (busy.has(cardId)) continue;

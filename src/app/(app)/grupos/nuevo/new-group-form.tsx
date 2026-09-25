@@ -5,10 +5,17 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { SubmitButton } from "@/components/ui/submit-button";
+import type { ActionResult } from "@/lib/action-result";
+import { cancelReplace, expectReplace } from "@/lib/nav-history";
 import { createGroup } from "../actions";
 
 export function NewGroupForm() {
-  const [state, action] = useActionState(createGroup, null);
+  const [state, action] = useActionState(async (prev: ActionResult | null, formData: FormData) => {
+    expectReplace(); // si crea, reemplaza este formulario en el historial
+    const r = await createGroup(prev, formData);
+    if (r && !r.ok) cancelReplace();
+    return r;
+  }, null);
   const fieldError = state && !state.ok ? state.fields?.name : undefined;
   return (
     <form action={action} className="grid gap-5">

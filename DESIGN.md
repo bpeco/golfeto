@@ -9,6 +9,8 @@ Fuente de verdad del diseño. Contexto de producto en `PRODUCT.md`; decisión de
 | **Puerta 1** (fin de la Fase 1) | **Variante A** "tarjeta y pizarra" (el brief tal cual: papel teñido + pizarra verde en exactamente dos lugares) y **tipografía A** (Sofia Sans + Sofia Sans Extra Condensed) | **PROVISIONAL** — la tomó el agente con la opción recomendada porque el dueño no estaba (2026-09-25). Revisar en el teléfono: `/dev/playground?variant=A`, `?variant=B`, `?variant=C` en el preview de Vercel (sección "Variante: Partida" y "Variante: Inicio"). Si se elige B o C, o una mezcla, se cambia acá y en el roadmap |
 | **Puerta 2** (fin de la Fase 5) | Partida real de prueba con la PWA instalada | **PENDIENTE del dueño**; sin ajustes hasta que se juegue. Ver checklist en `docs/roadmap.md` |
 
+Otras decisiones provisionales del agente (revisar en el teléfono; cada una tiene su motivo en la sección correspondiente): `statusBarStyle` `default` y no `black-translucent` en iOS; haptics de iOS apagados (`NEXT_PUBLIC_GALF_IOS_HAPTICS`); animaciones en CSS y sin `motion`; menú ⋯ como hoja desde abajo (`ActionMenu`); `Select` nativo; tamaños `text-numeral*`.
+
 Por qué A: es la que sale del brief y de las reglas de los skills (un elemento memorable por pantalla, el resto callado); B (todo pizarra) pierde legibilidad al sol en modo claro y convierte la app en "negro con acento", uno de los clusters de IA genérica; C (todo papel) resuelve bien la tarjeta pero deja el índice sin peso y la Partida sin foco para una mano. Tipografía: A es la única de las tres con figuras tabulares verificadas en las dos caras (el playground mide `1111,1` contra `8888,8`); Big Shoulders (C) no tiene `tnum` y Archivo (B) funciona pero su ancho condensado depende del eje `wdth`.
 
 Las variantes B y C quedan en el playground (`src/app/dev/playground/variants.tsx`) hasta que el dueño confirme; al confirmar, se borran (quedan en el historial de git).
@@ -35,6 +37,8 @@ Claro: papel teñido `oklch(0.972 0.008 120)` (hue 120, no crema), tinta verde-n
 
 **Contraste** (`pnpm contrast`, falla si algo no llega): tinta/página ≥ 12:1; metadatos ≥ 4,5:1; numerales de pizarra ≥ 7:1; bajo/sobre par ≥ 4,5:1 sobre card y página; botón primario y aviso ≥ 4,5:1; foco ≥ 3:1. Si algo falla se ajusta L, nunca chroma por encima de 0.19. Nada de negro, blanco ni gris puros (`pnpm lint:tokens` los prohíbe en clases).
 
+Tendencia del índice (`Trend`): bajar (mejorar) va en `score-under` y subir en `score-over`, como los números bajo y sobre par de un leaderboard de golf. **Desvío del plan**, que pedía `primary` para "mejoró": el verde de `primary` no se lee sobre la pizarra verde. Provisional, a revisar con el grupo.
+
 Para lo que no lee CSS (theme-color, manifest, íconos, splash) los hex están en `src/lib/theme-colors.ts`, sacados de `pnpm contrast -- --json`.
 
 ## Tipografía
@@ -49,7 +53,7 @@ Para lo que no lee CSS (theme-color, manifest, íconos, splash) los hex están e
 
 - Escala de 4 px. `tap` = 44 px (mínimo interactivo: `h-tap`, `size-tap`, `min-h-tap`), `thumb` = 56 px (stepper). Gutter 16, entre secciones 32, dentro 12.
 - Radio base 0,5 rem: `rounded-sm` celdas e inputs, `rounded-md` chips y botones, `rounded-xl` solo sheet, toast, diálogo y pizarra, `rounded-full` solo stepper, iniciales y puntos. **Sin `rounded-2xl`.**
-- Sombra: `shadow-raised` únicamente en sheet, toast, menú y barra fija de totales. Las listas y grillas usan reglas (`border-b border-border`; `border-line-strong` después del hoyo 9). Sin gradientes; la textura es la grilla.
+- Sombra: `shadow-raised` únicamente en sheet, toast, menú y las barras fijas de abajo (totales de la Partida, "Crear partida"). Las listas y grillas usan reglas (`border-b border-border`; `border-line-strong` después del hoyo 9). Sin gradientes; la textura es la grilla.
 
 ## Movimiento
 
@@ -57,7 +61,7 @@ Para lo que no lee CSS (theme-color, manifest, íconos, splash) los hex están e
 - Única secuencia orquestada: login. El Inicio tiene un stagger silencioso una vez por sesión.
 - Disparado por el usuario: el numeral del stepper, `ScoreMark` dibuja su marca (250 ms), el hoyo desliza según la dirección, la firma rueda el índice de antes a después, toasts.
 - Nunca: hover en touch, shimmer (los skeletons pulsan lento, 1,6 s), animar listas al navegar.
-- `motion` solo con `LazyMotion features={domAnimation} strict` (en `src/app/providers.tsx`) y `m.*`; cada componente animado respeta `useReducedMotion()`. NumberFlow respeta la preferencia solo. Las view transitions se anulan con `prefers-reduced-motion`.
+- Todo en **CSS** (`src/app/globals.css`): reveal del login y del primer Inicio, `.hole-in-next` / `.hole-in-prev` (cambio de hoyo), `.score-draw` (la marca de `ScoreMark`, `pathLength="1"` y `stroke-dashoffset`), crossfade de ruta con `<ViewTransition>`. El bloque `prefers-reduced-motion` al final de `globals.css` las anula todas; si se agrega una animación, se agrega ahí. **Desvío del plan (Fase 6):** el plan pedía `motion` con `LazyMotion`; se quitó porque sumaba ~11 kB al primer JS de cada ruta y lo único que animaba (la marca y el cambio de hoyo) sale igual en CSS. El único numeral que rueda es `AnimatedBoardNumber` (NumberFlow, que respeta la preferencia solo y se baja aparte).
 
 ## Notación de la tarjeta
 
@@ -78,9 +82,10 @@ Golpes recibidos: puntitos (`StrokeDots`), 1–3; desde 4, "×4"; huecos si el h
 
 Todo en `src/components/ui/`. Los de forma shadcn se escribieron a mano sobre `@base-ui/react` 1.8 (el CLI de shadcn no pudo bajar el registro: `ui.shadcn.com` está bloqueado en las sesiones de Claude); `components.json` queda listo para `shadcn add` desde una red libre, pero lo que haya se re-estila a mano: es nuestro.
 
-- **Base:** `Button` (`default | secondary | ghost | destructive | destructive-outline | link`; `sm` 36, `default` 44, `lg` 52, `icon` 44; prop `pending` con spinner que conserva el ancho; `buttonVariants` para links), `Input`, `Textarea`, `Label`, `Field` (etiqueta + ayuda + error; el control toma `id`/`aria-describedby`/`aria-invalid` del contexto), `Select` (**nativo** a propósito: en el teléfono abre el selector del sistema; desvío del plan), `Checkbox`, `ToggleGroup` / `Segmented` (siempre uno elegido), `Sheet` (sobre el Drawer de Base UI: se cierra deslizando), `Dialog` (solo para ver fotos), `DropdownMenu` (menú ⋯ de la cabecera), `Badge` (`neutral | outline | under | over | warn | signed | guest | destructive`), `Separator`, `Skeleton`, `Spinner`, `Toaster` (sonner arriba al centro, 3 s).
-- **Propios:** `PageHeader` + `BackButton` (vuelve con el historial si es de la app; si no, a la ruta padre), `BottomNav` (5 pestañas), `Section`, `List` / `ListRow`, `RoundRow`, `Board` / `BoardLabel` / `BoardNumber`, `Leaderboard` + `Trend`, `ScoreMark`, `StrokeDots`, `Stepper`, `TeeChip` / `TeeDot`, `Initials`, `ScorecardGrid` (modo golpes y modo cancha), `CellInput`, `Notice` (`info | warn | error | success`; reemplaza al ErrorBanner), `EmptyState`, `SubmitButton`, `SaveStatus`, `LinkPending` (velo de navegación pendiente).
-- `ui/legacy.tsx` es **temporal** (Card, LinkButton, Field, inputClass, Empty, ErrorBanner sobre tokens nuevos) y se borra al cerrar la Fase 5.
+- **Base:** `Button` (`default | secondary | ghost | destructive | destructive-outline | link`; `sm` 36, `default` 44, `lg` 52, `icon` 44; prop `pending` con spinner que conserva el ancho; `buttonVariants` para links), `Input`, `Textarea`, `Label`, `Field` (etiqueta + ayuda + error; el control toma `id`/`aria-describedby`/`aria-invalid` del contexto), `Select` (**nativo** a propósito: en el teléfono abre el selector del sistema; desvío del plan), `Checkbox`, `ToggleGroup` / `Segmented` (siempre uno elegido), `Sheet` (sobre el Drawer de Base UI: se cierra deslizando), `Dialog` (solo para ver fotos), `DropdownMenu` (queda en el kit y el catálogo; la cabecera usa `ActionMenu`), `Badge` (`neutral | outline | under | over | warn | signed | guest | destructive`), `Separator`, `Skeleton`, `Spinner`, `Toaster` (sonner arriba al centro, 3 s; se llama con `toast` de `@/lib/toast`, nunca de `"sonner"`: así sonner no entra en el primer JS).
+- **Propios:** `PageHeader` + `BackButton` (vuelve con el historial si es de la app; si no, a la ruta padre), `BottomNav` (5 pestañas), `Section`, `List` / `ListRow`, `RoundRow`, `Board` / `BoardLabel` / `BoardNumber` (estático, sin JS) / `AnimatedBoardNumber` (rueda), `Leaderboard` + `Trend`, `ScoreMark`, `StrokeDots`, `Stepper`, `TeeChip` / `TeeDot`, `Initials`, `ScorecardGrid` (modo golpes y modo cancha), `CellInput`, `Notice` (`info | warn | error | success`; reemplaza al ErrorBanner), `EmptyState`, `SubmitButton`, `SaveStatus`, `LinkPending` (velo de navegación pendiente), `ActionMenu` + `ActionSheet` (el menú ⋯ de la cabecera: hoja de acciones desde abajo con filas de 56 px, en la zona del pulgar; **desvío del plan**, que pedía un `DropdownMenu` arriba a la derecha), `ConfirmSheet` (vía `useConfirm`).
+- **Carga diferida:** lo que se abre por una acción (confirmación, hoja de acciones, firma, pasos de la foto, visor de fotos, miembros del grupo) se baja con `next/dynamic` al abrirlo o en un momento libre, no con la página. Se monta la primera vez que se abre y queda montado para que se vea la animación de salida.
+- `ui/legacy.tsx` (puente temporal de la Fase 1) se borró en la Fase 5.
 
 Catálogo vivo con todos los estados: `/dev/playground` (en desarrollo y en los Preview de Vercel).
 
@@ -90,7 +95,7 @@ Rioplatense, sentence case, vocabulario de `CONTEXT.md`. Mismo verbo en todo el 
 
 ## Prohibido (y cómo se controla)
 
-`pnpm lint:tokens` falla con: `text-muted` sin `-foreground`, `bg-surface`, `text-accent`/`border-accent`, colores de la paleta de Tailwind (`red-600`…), blanco/negro puros, texto de menos de 12 px, Geist, `rounded-2xl`, sombras de kit (`shadow-sm`…), eyebrows `uppercase tracking-wide`. Además, por revisión: cards anidadas, gradientes, emoji como ícono (lucide), `confirm()` nativo, `?ok=`/`?error=` como feedback, metadatos con "·".
+`pnpm lint:tokens` falla con: `text-muted` sin `-foreground`, `bg-surface`, `text-accent`/`border-accent`, colores de la paleta de Tailwind (`red-600`…), blanco/negro puros, texto de menos de 12 px, Geist, `rounded-2xl`, sombras de kit (`shadow-sm`…), eyebrows `uppercase tracking-wide`. Además, por revisión: cards anidadas, gradientes, emoji como ícono (lucide), `confirm()` nativo, `?ok=`/`?error=` como feedback (única excepción: `/login?error=auth`, que pone el callback de OAuth), metadatos con "·".
 
 ## Abierto
 

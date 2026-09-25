@@ -16,8 +16,8 @@ export function DeclaredHandicapForm({ current }: { current: number | null }) {
   const error = state && !state.ok ? (state.fields?._ ?? state.error) : undefined;
   return (
     <form action={action} className="grid gap-3">
-      <Field label="Hándicap declarado" error={error} hint="Tu índice oficial (AAG). Se usa hasta que Galf tenga 3 tarjetas firmadas tuyas.">
-        <Input name="value" inputMode="decimal" placeholder="18,4" defaultValue={current != null ? String(current).replace(".", ",") : ""} autoComplete="off" />
+      <Field label="Hándicap declarado" error={error} hint="Tu Hándicap Index oficial (AAG), con + si sos plus. Se usa hasta que Galf tenga 3 tarjetas firmadas tuyas.">
+        <Input name="value" inputMode="decimal" placeholder="18,4" defaultValue={current != null ? fmtIndex(current) : ""} autoComplete="off" />
       </Field>
       <SubmitButton variant="secondary" pendingLabel="Guardando…">
         Guardar hándicap

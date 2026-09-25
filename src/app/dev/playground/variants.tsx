@@ -88,7 +88,7 @@ function PartidaA() {
       <RoundHeaderMock />
       <RoundScoring
         roundId={round.id}
-        courseId={round.course.id}
+        tee={{ name: round.tee.name, holesCount: round.course.holesCount }}
         positions={round.positions}
         loops={round.loops}
         cards={cards}

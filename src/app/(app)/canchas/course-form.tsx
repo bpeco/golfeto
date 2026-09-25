@@ -15,6 +15,7 @@ import { resizeImage } from "@/lib/image-resize";
 import { parseDecimal } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { readCourseCard } from "./photo-actions";
+import { cancelReplace, expectReplace } from "@/lib/nav-history";
 import { saveCourseAndRedirect } from "./actions";
 import type { CourseInput } from "./schema";
 
@@ -153,8 +154,10 @@ export function CourseForm({
     setError(undefined);
     setFields({});
     start(async () => {
+      expectReplace();
       const r = await saveCourseAndRedirect(courseId, input);
       if (r && !r.ok) {
+        cancelReplace();
         setError(r.error);
         setFields(r.fields ?? {});
       }

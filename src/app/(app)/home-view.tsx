@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ViewTransition } from "react";
 import { Flag, Plus, Users } from "lucide-react";
 import { HeroIndex } from "@/components/hero-index";
 import { Board, BoardLabel } from "@/components/ui/board";
@@ -48,7 +49,9 @@ export function HomeView({ meId, firstName, handicap, groups, rounds, pending }:
             )}
           </div>
           <Link href="/perfil" className="mt-1 block w-fit outline-none focus-visible:ring-2 focus-visible:ring-board-foreground" aria-label="Ver tu hándicap en Perfil">
-            <HeroIndex value={handicap.effective} previous={handicap.previous} />
+            <ViewTransition name="hcp-index" share="morph" default="none">
+              <HeroIndex value={handicap.effective} previous={handicap.previous} />
+            </ViewTransition>
           </Link>
           {handicap.source === "calculado" ? (
             <BoardLabel className="mt-2">{fmtCount(handicap.signedCount, "tarjeta firmada", "tarjetas firmadas")}</BoardLabel>
@@ -95,7 +98,16 @@ export function HomeView({ meId, firstName, handicap, groups, rounds, pending }:
           }
         >
           {groups.length === 0 ? (
-            <EmptyState icon={Users} title="Todavía no estás en ningún grupo" body="Creá uno o entrá con el link que te mandaron." />
+            <EmptyState
+              icon={Users}
+              title="Todavía no estás en ningún grupo"
+              body="Creá uno o entrá con el link que te mandaron."
+              action={
+                <Link href="/grupos/nuevo" className={buttonVariants({ variant: "secondary" })}>
+                  Crear grupo
+                </Link>
+              }
+            />
           ) : (
             <List>
               {groups.map((g) => (
@@ -116,7 +128,16 @@ export function HomeView({ meId, firstName, handicap, groups, rounds, pending }:
           }
         >
           {rounds.length === 0 ? (
-            <EmptyState icon={Flag} title="Todavía no hay partidas" body="Creá la primera: cancha, tee y quiénes juegan." />
+            <EmptyState
+              icon={Flag}
+              title="Todavía no hay partidas"
+              body="Creá la primera: cancha, tee y quiénes juegan."
+              action={
+                <Link href="/partidas/nueva" className={buttonVariants({ variant: "secondary" })}>
+                  Nueva partida
+                </Link>
+              }
+            />
           ) : (
             <ul className="divide-y divide-border border-y border-border">
               {rounds.map((r) => (

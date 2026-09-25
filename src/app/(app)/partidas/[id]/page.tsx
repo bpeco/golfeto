@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { TeeChip } from "@/components/ui/tee-chip";
@@ -68,16 +67,14 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
                 CR {fmtDecimal(round.tee.courseRating!)} / Slope {round.tee.slope}
               </span>
             ) : (
-              <Link href={`/canchas/${round.course.id}/editar`} className="font-semibold text-warn-ink underline underline-offset-4">
-                Sin rating
-              </Link>
+              <span className="font-semibold text-warn-ink">Sin rating</span>
             )}
           </>
         }
       />
       <RoundScoring
         roundId={round.id}
-        courseId={round.course.id}
+        tee={{ name: round.tee.name, holesCount: round.course.holesCount }}
         positions={round.positions}
         loops={round.loops}
         cards={cards}

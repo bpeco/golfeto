@@ -27,7 +27,7 @@ export function SaveStatus({ state, onRetry, className }: { state: SaveState; on
           <CloudOff aria-hidden className="size-4 text-destructive" />
           <span className="text-destructive">No se guardó</span>
           {onRetry && (
-            <button type="button" onClick={onRetry} className="ml-1 min-h-tap px-1 font-semibold text-primary underline underline-offset-4">
+            <button type="button" onClick={onRetry} className="ml-1 min-h-tap rounded-sm px-1 font-semibold text-primary underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Reintentar
             </button>
           )}

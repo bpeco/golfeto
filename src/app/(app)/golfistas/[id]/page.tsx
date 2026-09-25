@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClipboardList } from "lucide-react";
@@ -56,7 +57,13 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
           <p className="text-sm text-muted-foreground">
             {h.source === "calculado" ? "Hándicap Index" : h.source === "declarado" ? "Hándicap declarado" : "Sin hándicap todavía"}
           </p>
-          <BoardNumber value={h.effective} kind="index" size="xl" className="block" />
+          {isMe ? (
+            <ViewTransition name="hcp-index" share="morph" default="none">
+              <BoardNumber value={h.effective} kind="index" size="xl" className="block" />
+            </ViewTransition>
+          ) : (
+            <BoardNumber value={h.effective} kind="index" size="xl" className="block" />
+          )}
         </div>
         {delta != null && (
           <p className="mb-2 inline-flex items-center gap-1 text-base font-semibold">

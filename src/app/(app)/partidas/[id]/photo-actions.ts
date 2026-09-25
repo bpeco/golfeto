@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { fmtCount } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { getRound } from "@/lib/db/rounds";
 import { toImageInput, VISION_MODEL } from "@/lib/vision/client";
@@ -58,7 +59,9 @@ export async function readScorecardPhoto(roundId: string, photoId: string): Prom
     return fail("No pudimos leer la foto. Quedó guardada; probá leerla de nuevo o sacá otra más de frente y con buena luz.");
   }
 
-  await supabase.from("round_photo_extractions").insert({ round_photo_id: photoId, model: VISION_MODEL, raw_output: extraction });
+  // Registro de la lectura cruda: si falla no frena al usuario, pero queda en el log.
+  const { error: logErr } = await supabase.from("round_photo_extractions").insert({ round_photo_id: photoId, model: VISION_MODEL, raw_output: extraction });
+  if (logErr) console.error("No se guardó la lectura cruda", logErr);
 
   const suggestions = suggestAssignments(
     extraction.rows.map((r) => r.name),
@@ -83,7 +86,11 @@ export async function applyExtraction(
       const strokes = a.strokes[position - 1];
       if (strokes == null || strokes < 1 || strokes > 30) continue;
       const r = await saveHoleScore({ scorecardId: card.id, holeId: hole.id, position, strokes, pickedUp: false });
-      if (!r.ok) return fail(`${r.error} Se cargaron ${saved} hoyos antes del error.`);
+      if (!r.ok) {
+        // Lo que ya se escribió tiene que verse (y ser la base del autosave).
+        if (saved > 0) revalidatePath(`/partidas/${roundId}`);
+        return fail(`${r.error} Se cargaron ${fmtCount(saved, "hoyo")} antes del error.`);
+      }
       saved++;
     }
     applied++;

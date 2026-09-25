@@ -6,6 +6,7 @@ import { Ban, Copy, DoorOpen, RefreshCw, Share2, UserRoundMinus } from "lucide-r
 import { toast } from "@/lib/toast";
 import { ActionMenu, type Action } from "@/components/ui/action-menu";
 import { useConfirm } from "@/components/ui/use-confirm";
+import { cancelReplace, expectReplace } from "@/lib/nav-history";
 import { leaveGroup, regenerateInviteCode, removeMember, revokeInviteCode } from "../actions";
 import { useInviteLink } from "./use-invite-link";
 
@@ -68,8 +69,12 @@ export function GroupMenu({
     });
     if (!res.ok) return;
     start(async () => {
+      expectReplace();
       const r = await leaveGroup(groupId);
-      if (r && !r.ok) toast.error(r.error);
+      if (r && !r.ok) {
+        cancelReplace();
+        toast.error(r.error);
+      }
     });
   }
 
@@ -104,7 +109,7 @@ export function GroupMenu({
       ? [
           { label: code ? "Generar otro link" : "Generar link", icon: <RefreshCw />, onSelect: regenerate },
           ...(code ? [{ label: "Revocar link", icon: <Ban />, onSelect: revoke }] : []),
-          { label: "Administrar miembros", icon: <UserRoundMinus />, onSelect: openMembers },
+          { label: "Golfistas del grupo", icon: <UserRoundMinus />, onSelect: openMembers },
         ]
       : []),
     { label: "Salir del grupo", icon: <DoorOpen />, onSelect: leave, destructive: true },

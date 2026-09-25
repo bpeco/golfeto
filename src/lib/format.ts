@@ -76,3 +76,14 @@ export function parseDecimal(raw: string): number | null {
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
+
+/**
+ * Un índice escrito como lo dice la AAG: "18,4", o "+2,5" para un plus. Adentro los plus son
+ * negativos (como los muestra `fmtIndex`), así que "+2,5" → −2,5. Un "−2,5" también es plus.
+ */
+export function parseHandicap(raw: string): number | null {
+  const s = raw.trim();
+  if (!s.startsWith("+")) return parseDecimal(s);
+  const n = parseDecimal(s.slice(1));
+  return n == null ? null : -Math.abs(n);
+}

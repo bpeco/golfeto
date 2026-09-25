@@ -1,3 +1,4 @@
+import { RollingNumber } from "./animated-board-number";
 import { notationFor, notationLabel, type NotationShape } from "@/lib/score-notation";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +21,7 @@ const TONE = {
 /**
  * Golpes de un hoyo con la marca de la tarjeta de papel alrededor: círculo (birdie),
  * doble círculo (eagle o mejor), cuadrado (bogey), doble cuadrado (doble bogey o peor),
- * barra (Hoyo no terminado). Con `animate`, la marca se dibuja al cambiar (250 ms).
+ * barra (Hoyo no terminado). Con `animate`, la marca se dibuja al cambiar (250 ms) y el número rueda.
  */
 export function ScoreMark({
   strokes,
@@ -51,7 +52,7 @@ export function ScoreMark({
       </svg>
       {n.tone !== "picked-up" && (
         <span aria-hidden className={cn("relative font-display leading-none font-bold tabular-nums", s.text)}>
-          {strokes ?? "—"}
+          {animate && strokes != null ? <RollingNumber value={strokes} /> : (strokes ?? "—")}
         </span>
       )}
     </span>

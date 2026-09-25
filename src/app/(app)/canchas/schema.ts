@@ -33,6 +33,14 @@ export const courseInputSchema = z
       else if (seen.has(h.strokeIndex)) ctx.addIssue({ code: "custom", path: ["holes", i, "strokeIndex"], message: `El Hcp ${h.strokeIndex} está repetido` });
       seen.set(h.strokeIndex, i);
     });
+    // La base no acepta dos tees con el mismo nombre (sin mirar mayúsculas): se avisa acá,
+    // antes de tocar la versión vigente.
+    const names = new Map<string, number>();
+    v.tees.forEach((t, i) => {
+      const n = t.name.trim().toLocaleLowerCase("es");
+      if (names.has(n)) ctx.addIssue({ code: "custom", path: ["tees", i, "name"], message: `Ya hay un tee «${t.name.trim()}»` });
+      names.set(n, i);
+    });
   });
 
 export type CourseInput = z.input<typeof courseInputSchema>;

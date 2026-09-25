@@ -13,7 +13,7 @@ export function Stepper({
   value,
   onChange,
   min = 1,
-  max = 20,
+  max = 30, // el tope de la base (y de la foto)
   emptyValue,
   disabled = false,
   size = "md",
@@ -60,19 +60,20 @@ export function Stepper({
     "flex shrink-0 items-center justify-center rounded-full border-2 border-foreground/80 bg-card text-foreground",
     "transition-[transform,background-color] duration-120 ease-out active:scale-[0.94] active:bg-accent motion-reduce:active:scale-100",
     "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    "disabled:border-border disabled:text-muted-foreground disabled:opacity-60",
+    "aria-disabled:border-border aria-disabled:text-muted-foreground aria-disabled:opacity-60 aria-disabled:active:scale-100 aria-disabled:active:bg-card",
     size === "lg" ? "size-thumb [&_svg]:size-7" : "size-tap [&_svg]:size-5",
   );
 
   return (
     <div role="group" aria-label={label} onKeyDown={onKeyDown} className={cn("flex items-center justify-between gap-4", className)}>
-      <button type="button" className={button} disabled={!canDec} aria-label={decrementLabel} onClick={() => step(-1)}>
+      {/* aria-disabled y no disabled: al llegar al tope el botón conserva el foco del teclado. */}
+      <button type="button" className={button} aria-disabled={!canDec} aria-label={decrementLabel} onClick={() => step(-1)}>
         <Minus aria-hidden strokeWidth={2.5} />
       </button>
       <div aria-live="polite" className="flex min-w-0 flex-1 items-center justify-center">
         {children}
       </div>
-      <button type="button" className={button} disabled={!canInc} aria-label={incrementLabel} onClick={() => step(1)}>
+      <button type="button" className={button} aria-disabled={!canInc} aria-label={incrementLabel} onClick={() => step(1)}>
         <Plus aria-hidden strokeWidth={2.5} />
       </button>
     </div>

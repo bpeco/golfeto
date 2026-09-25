@@ -1,21 +1,23 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
 import { getPlayerHandicap, type PlayerHandicap } from "@/lib/db/handicap";
 import { effectiveTeeRating, getRound } from "@/lib/db/rounds";
 import { fail, friendlyDbError, fromZod, ok, type ActionResult } from "@/lib/action-result";
+import { todayInArgentina } from "@/lib/dates";
 import { flash } from "@/lib/flash";
 import {
   adjustedGrossScore,
   courseHandicap,
   courseHandicap9,
   differentialFrom9Holes,
+  minimumHolesToSign,
   scoreDifferential,
 } from "@/lib/handicap/course";
-import { roundInputSchema } from "./schema";
+import { roundInputSchema, teeRatingSchema } from "./schema";
 
 export async function createRound(raw: unknown): Promise<ActionResult<{ roundId: string }>> {
   const parsed = roundInputSchema.safeParse(raw);
@@ -35,7 +37,10 @@ export async function createRound(raw: unknown): Promise<ActionResult<{ roundId:
     if (error) return fail(friendlyDbError(error));
     guestIds.push(data.id);
     if (g.declaredHandicap != null) {
-      await supabase.from("player_declared_handicaps").insert({ player_id: data.id, value: g.declaredHandicap });
+      const { error: hErr } = await supabase
+        .from("player_declared_handicaps")
+        .insert({ player_id: data.id, value: g.declaredHandicap, valid_from: todayInArgentina() });
+      if (hErr) return fail(friendlyDbError(hErr));
     }
   }
 
@@ -69,7 +74,7 @@ export async function createRoundAndRedirect(raw: unknown): Promise<ActionResult
   const r = await createRound(raw);
   if (!r.ok) return r;
   await flash("Partida creada. A anotar.");
-  redirect(`/partidas/${r.data.roundId}`);
+  redirect(`/partidas/${r.data.roundId}`, RedirectType.replace);
 }
 
 export async function saveHoleScore(input: {
@@ -105,6 +110,30 @@ export async function saveHoleScore(input: {
     });
     if (error) return fail(friendlyDbError(error));
   }
+  return ok();
+}
+
+/**
+ * Carga CR y Slope en el tee de la partida cuando no los tiene. No crea una versión nueva de la
+ * cancha (eso dejaría a la partida en el tee viejo, todavía sin rating): completa el mismo tee.
+ * Solo si falta: un tee con rating no se toca desde acá (puede tener tarjetas firmadas).
+ */
+export async function setRoundTeeRating(roundId: string, raw: unknown): Promise<ActionResult> {
+  const parsed = teeRatingSchema.safeParse(raw);
+  if (!parsed.success) return fromZod(parsed.error);
+  await requirePlayer();
+  const round = await getRound(roundId);
+  if (!round) return fail("No encontramos la partida.");
+  if (round.tee.courseRating != null && round.tee.slope != null) return fail(`Las ${round.tee.name} ya tienen CR y Slope.`);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("tee_sets")
+    .update({ course_rating: parsed.data.courseRating, slope: parsed.data.slope })
+    .eq("id", round.tee.id);
+  if (error) return fail(friendlyDbError(error));
+  revalidatePath(`/partidas/${roundId}`);
+  revalidatePath(`/canchas/${round.course.id}`);
   return ok();
 }
 
@@ -157,7 +186,7 @@ export async function signScorecard(roundId: string, scorecardId: string): Promi
     });
     const ags = adjustedGrossScore(results, ch, rating.holesInRound);
     if (!ags.acceptable) {
-      return fail(`Faltan hoyos: hay ${ags.holesPlayed} cargados y se necesitan al menos ${rating.holesInRound === 18 ? 10 : 9}.`);
+      return fail(`Faltan hoyos: hay ${ags.holesPlayed} cargados y se necesitan al menos ${minimumHolesToSign(rating.holesInRound)}.`);
     }
     adjustedGross = ags.adjustedGross;
     gross = ags.gross;
@@ -230,5 +259,5 @@ export async function deleteRound(roundId: string): Promise<ActionResult> {
   revalidatePath("/");
   revalidatePath("/partidas");
   await flash("Partida dada de baja.", "info");
-  redirect("/partidas");
+  redirect("/partidas", RedirectType.replace);
 }

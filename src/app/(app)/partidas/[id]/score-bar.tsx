@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { ClipboardList, Grid3x3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SaveStatus, type SaveState } from "@/components/ui/save-status";
@@ -22,7 +21,7 @@ export function ScoreBar({
   onToggleMode,
   signState,
   onSign,
-  noRatingHref,
+  onAddRating,
 }: {
   totals: CardTotals;
   legacyGross: number | null;
@@ -34,7 +33,8 @@ export function ScoreBar({
   /** null = esta tarjeta no la firma quien mira (o ya está firmada). */
   signState: { disabled: boolean; reason?: string } | null;
   onSign: () => void;
-  noRatingHref?: string;
+  /** Sin rating: abre la hoja para cargar CR y Slope del tee. */
+  onAddRating?: () => void;
 }) {
   const gross = legacyGross ?? (totals.withStrokes > 0 ? totals.gross : null);
   return (
@@ -76,12 +76,16 @@ export function ScoreBar({
         {signState?.reason && (
           <p className="mt-1.5 text-sm text-muted-foreground">
             {signState.reason}
-            {noRatingHref && (
+            {onAddRating && (
               <>
                 {" "}
-                <Link href={noRatingHref} className="font-semibold text-primary underline underline-offset-4">
-                  Editar la cancha
-                </Link>
+                <button
+                  type="button"
+                  onClick={onAddRating}
+                  className="min-h-tap rounded-sm font-semibold text-primary underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Cargar CR y Slope
+                </button>
               </>
             )}
           </p>

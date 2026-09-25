@@ -6,7 +6,7 @@ import { List, ListRow } from "@/components/ui/list";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { GroupMember } from "./group-menu";
 
-/** Administrar miembros (solo admin). Se carga aparte, al abrirla. */
+/** Golfistas del grupo: sacar a alguien (solo admin). Se carga aparte, al abrirla. */
 export default function MembersSheet({
   open,
   onOpenChange,
@@ -26,7 +26,7 @@ export default function MembersSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Miembros</SheetTitle>
+          <SheetTitle>Golfistas del grupo</SheetTitle>
           <SheetDescription>Sacar a alguien no borra sus tarjetas.</SheetDescription>
         </SheetHeader>
         <List>

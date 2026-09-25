@@ -41,7 +41,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
 
-      <p className="reveal-rise text-center text-sm text-muted-foreground" style={delay(900)}>
+      <p className="reveal-rise text-center text-sm text-muted-foreground" style={delay(840)}>
         Solo para el grupo. Si no podés entrar, pedile a quien administra que te agregue.
       </p>
     </main>

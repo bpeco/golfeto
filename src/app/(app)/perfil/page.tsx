@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition, type ReactNode } from "react";
 import { LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BoardNumber } from "@/components/ui/board-number";
@@ -32,7 +33,9 @@ export default async function ProfilePage() {
         <div className="grid grid-cols-2 divide-x divide-border border-y border-border">
           <div className="py-4 pr-4">
             <p className="text-sm text-muted-foreground">Calculado por Galf</p>
-            <BoardNumber value={h.computed} kind="index" size="lg" className="mt-1 block" />
+            <SharedIndex on={h.source === "calculado"}>
+              <BoardNumber value={h.computed} kind="index" size="lg" className="mt-1 block" />
+            </SharedIndex>
             <p className="mt-2 text-sm text-muted-foreground">
               {missing > 0 ? `Te ${missing === 1 ? "falta 1 tarjeta firmada" : `faltan ${missing} tarjetas firmadas`}` : fmtCount(h.signedCount, "tarjeta firmada", "tarjetas firmadas")}
             </p>
@@ -40,7 +43,9 @@ export default async function ProfilePage() {
           </div>
           <div className="py-4 pl-4">
             <p className="text-sm text-muted-foreground">Declarado (AAG)</p>
-            <BoardNumber value={h.declared} kind="index" size="lg" className="mt-1 block" />
+            <SharedIndex on={h.source === "declarado"}>
+              <BoardNumber value={h.declared} kind="index" size="lg" className="mt-1 block" />
+            </SharedIndex>
             <p className="mt-2 text-sm text-muted-foreground">{h.declared == null ? "Sin cargar" : h.source === "declarado" ? "Se usa hasta tener 3 firmadas" : "Referencia"}</p>
             {h.source === "declarado" && <Badge tone="signed" className="mt-2">en uso</Badge>}
           </div>
@@ -67,5 +72,16 @@ export default async function ProfilePage() {
         </Button>
       </form>
     </>
+  );
+}
+
+/** El índice en uso comparte nombre con el del Inicio: al ir de uno al otro, el número viaja. */
+function SharedIndex({ on, children }: { on: boolean; children: ReactNode }) {
+  return on ? (
+    <ViewTransition name="hcp-index" share="morph" default="none">
+      {children}
+    </ViewTransition>
+  ) : (
+    children
   );
 }

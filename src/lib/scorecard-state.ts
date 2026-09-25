@@ -2,6 +2,7 @@
  * Reglas puras de la pantalla de Partida: qué se muestra y qué se puede hacer con una tarjeta.
  * Los totales viven en scorecard-totals.ts; el cálculo WHS en handicap/.
  */
+import { minimumHolesToSign } from "./handicap/course";
 import type { HolesPlayed } from "./round-model";
 import { nextUnplayed, type HoleScore, type PositionedHole } from "./scorecard-totals";
 
@@ -38,8 +39,8 @@ export function signBlocker(o: {
 }): SignBlocker {
   if (o.locked) return { reason: "locked", message: "La tarjeta ya está firmada." };
   if (!o.isOwner) return { reason: "not-owner", message: `Solo ${o.playerName} puede firmar su tarjeta.` };
-  if (!o.hasRating) return { reason: "no-rating", message: "Sin rating: cargalo en la cancha para poder firmar." };
-  const min = o.holesInRound === 18 ? 10 : 9;
+  if (!o.hasRating) return { reason: "no-rating", message: "Sin CR y Slope del tee: hacen falta para firmar." };
+  const min = minimumHolesToSign(o.holesInRound);
   if (o.played < min) return { reason: "holes", message: `Para firmar hacen falta ${min} hoyos: hay ${o.played}.` };
   if (o.dirty) return { reason: "saving", message: "Guardando los últimos golpes…" };
   return null;
@@ -48,13 +49,4 @@ export function signBlocker(o: {
 /** Dónde abrir la partida: el primer hoyo sin anotar, o el último si ya está completa. */
 export function initialPosition(positions: PositionedHole[], scores: Record<number, HoleScore | undefined>) {
   return nextUnplayed(positions, scores) ?? positions.at(-1)?.position ?? 1;
-}
-
-/** Filas leídas de la foto (golpes por posición, 0-based) sobre los golpes de la tarjeta. */
-export function mergePhotoRow(scores: Record<number, HoleScore>, strokes: (number | null)[]): Record<number, HoleScore> {
-  const next = { ...scores };
-  strokes.forEach((v, i) => {
-    if (v != null && v >= 1 && v <= 30) next[i + 1] = { strokes: v, pickedUp: false };
-  });
-  return next;
 }

@@ -12,7 +12,7 @@ export function InviteSection({ groupName, code }: { groupName: string; code: st
     <div className="grid gap-3">
       <p className="text-base break-all select-all">{link || `…/unirse/${code}`}</p>
       <div className="grid grid-cols-2 gap-2">
-        <Button onClick={share}>
+        <Button variant="secondary" onClick={share}>
           <Share2 /> Compartir
         </Button>
         <Button variant="secondary" onClick={copy}>

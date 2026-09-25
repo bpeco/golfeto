@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { Trash } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { cancelReplace, expectReplace } from "@/lib/nav-history";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { useConfirm } from "@/components/ui/use-confirm";
 import { deleteRound } from "../actions";
@@ -21,8 +22,12 @@ export function RoundMenu({ roundId, canDelete }: { roundId: string; canDelete: 
     });
     if (!res.ok) return;
     start(async () => {
+      expectReplace();
       const r = await deleteRound(roundId);
-      if (r && !r.ok) toast.error(r.error);
+      if (r && !r.ok) {
+        cancelReplace();
+        toast.error(r.error);
+      }
     });
   }
 

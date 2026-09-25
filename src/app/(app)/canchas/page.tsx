@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { LandPlot, Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -39,7 +40,11 @@ export default async function CoursesPage() {
             <ListRow
               key={c.id}
               href={`/canchas/${c.id}`}
-              title={c.name}
+              title={
+                <ViewTransition name={`course-${c.id}`} share="morph" default="none">
+                  <span className="block truncate">{c.name}</span>
+                </ViewTransition>
+              }
               meta={
                 <>
                   <span>{[c.club !== c.name ? c.club : null, c.city].filter(Boolean).join(", ") || "Sin club"}</span>

@@ -367,6 +367,12 @@ html[data-launched] .reveal-stagger > * {
   animation: reveal-ring 250ms var(--ease-out) both;
 }
 
+/* Elemento compartido (índice del Inicio ↔ Perfil/tu ficha, nombre de cancha ↔ su detalle). */
+::view-transition-group(.morph) {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-out);
+}
+
 /* Movimiento: el sistema operativo manda. Sin transiciones de ruta ni animaciones decorativas. */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),

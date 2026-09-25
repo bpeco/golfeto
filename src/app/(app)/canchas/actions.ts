@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { courseInputSchema } from "./schema";
 import { createClient } from "@/lib/supabase/server";
@@ -32,12 +32,13 @@ export async function saveCourse(courseId: string | null, raw: unknown): Promise
     const { error } = await supabase.from("courses").update({ name: input.name, club: input.club, city: input.city }).eq("id", id);
     if (error) return fail(friendlyDbError(error));
     // Cerrar la versión vigente el día anterior a la nueva.
-    const { data: open } = await supabase
+    const { data: open, error: openErr } = await supabase
       .from("course_versions")
       .select("id, valid_from")
       .eq("course_id", id)
       .is("valid_to", null)
       .is("deleted_at", null);
+    if (openErr) return fail(friendlyDbError(openErr));
     for (const v of open ?? []) {
       if (v.valid_from >= input.validFrom) return fail("La versión vigente empieza en o después de la fecha elegida: elegí una fecha posterior.", { validFrom: "Tiene que ser posterior a la versión vigente" });
       const { error } = await supabase.from("course_versions").update({ valid_to: input.validFrom }).eq("id", v.id);
@@ -96,5 +97,5 @@ export async function saveCourseAndRedirect(courseId: string | null, raw: unknow
   const result = await saveCourse(courseId, raw);
   if (!result.ok) return result;
   await flash(courseId ? "Guardamos la versión nueva de la cancha." : "Cancha creada.");
-  redirect(`/canchas/${result.data.courseId}`);
+  redirect(`/canchas/${result.data.courseId}`, RedirectType.replace);
 }

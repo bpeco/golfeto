@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
@@ -39,7 +38,8 @@ export function FocusMode({
   locked: boolean;
   positions: Position[];
   position: number;
-  direction: 1 | -1;
+  /** Hacia dónde se movió el usuario por última vez; 0 = recién abierta (no desliza). */
+  direction: -1 | 0 | 1;
   scores: Record<number, HoleScore>;
   holesInRound: number;
   roundId: string;
@@ -66,7 +66,10 @@ export function FocusMode({
               Par <strong className="text-foreground">{hole.par}</strong>
             </span>
             <span>
-              Hcp <strong className="text-foreground">{hole.strokeIndex ?? "—"}</strong>
+              <abbr title="Hándicap de hoyo" className="no-underline">
+                Hcp
+              </abbr>{" "}
+              <strong className="text-foreground">{hole.strokeIndex ?? "—"}</strong>
             </span>
             {hole.meters != null && <span>{hole.meters} m</span>}
           </p>
@@ -94,7 +97,7 @@ export function FocusMode({
           if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) onGo(position + (dx < 0 ? 1 : -1));
         }}
       >
-        <div key={`${card.id}-${position}`} className={cn("mt-4", direction === 1 ? "hole-in-next" : "hole-in-prev")}>
+        <div key={position} className={cn("mt-4", direction === 1 && "hole-in-next", direction === -1 && "hole-in-prev")}>
           {card.isLegacy ? (
             <LockedHole title="Tarjeta histórica" body={`Total ${card.legacyGross ?? "—"} golpes, sin detalle por hoyo.`} />
           ) : locked ? (
@@ -149,7 +152,6 @@ function LockedHole({ title, body, action }: { title: string; body: string; acti
 
 function SignedHole({ card, score, par, roundId, onUnsigned }: { card: ScoringCard; score?: HoleScore; par: number; roundId: string; onUnsigned: () => void }) {
   const confirm = useConfirm();
-  const router = useRouter();
   const [pending, start] = useTransition();
   const sig = card.signature;
 
@@ -170,7 +172,6 @@ function SignedHole({ card, score, par, roundId, onUnsigned }: { card: ScoringCa
       }
       toast("Desfirmada", { description: r.data.indexAfter != null ? `Tu Hándicap Index vuelve a ${fmtIndex(r.data.indexAfter)}.` : undefined });
       onUnsigned();
-      router.refresh();
     });
   }
 

@@ -80,6 +80,11 @@ export type AdjustedGrossResult = {
  * levantado vale net double bogey; un hoyo no jugado vale par neto. Una tarjeta
  * de 18 necesita al menos 10 hoyos jugados (Regla 2.2); una de 9, los 9.
  */
+/** Regla 5.1b: hoyos jugados mínimos para que una tarjeta sea aceptable (10 de 18, 9 de 9). */
+export function minimumHolesToSign(holesInRound: number) {
+  return holesInRound === 18 ? 10 : 9;
+}
+
 export function adjustedGrossScore(
   results: HoleResult[],
   courseHcp: number,
@@ -104,8 +109,7 @@ export function adjustedGrossScore(
     }
   }
 
-  const minimum = holesInRound === 18 ? 10 : 9;
-  return { adjustedGross, gross, holesPlayed, acceptable: holesPlayed >= minimum };
+  return { adjustedGross, gross, holesPlayed, acceptable: holesPlayed >= minimumHolesToSign(holesInRound) };
 }
 
 /** Regla 5.1a. (113 / Slope) × (Score ajustado − Course Rating − PCC), a un decimal. */

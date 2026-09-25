@@ -151,7 +151,7 @@ function Review({
             <div key={i} className="py-4">
               <div className="flex items-center gap-2">
                 <span className="min-w-0 shrink truncate text-base">“{row.name}”</span>
-                <Select size="sm" className="ml-auto w-44" aria-label={`De quién es la fila “${row.name}”`} value={assign[i] ?? ""} onChange={(e) => onAssign(i, e.target.value || null)}>
+                <Select className="ml-auto w-44" aria-label={`De quién es la fila “${row.name}”`} value={assign[i] ?? ""} onChange={(e) => onAssign(i, e.target.value || null)}>
                   <option value="">(ignorar)</option>
                   {players.map((p) => (
                     <option key={p.id} value={p.id} disabled={p.locked}>

@@ -30,6 +30,7 @@ export type ScoringCard = Pick<
 // La hoja de firma se baja aparte del JS de la partida.
 const loadSignSheet = () => import("./sign-sheet").then((mod) => mod.SignSheet);
 const SignSheet = dynamic(loadSignSheet, { ssr: false });
+const RatingSheet = dynamic(() => import("./rating-sheet"), { ssr: false });
 
 export type Position = { position: number; hole: RoundHole };
 
@@ -39,7 +40,7 @@ export type Position = { position: number; hole: RoundHole };
  */
 export function RoundScoring({
   roundId,
-  courseId,
+  tee,
   positions,
   loops,
   cards,
@@ -49,7 +50,8 @@ export function RoundScoring({
   saveAction = saveHoleScore,
 }: {
   roundId: string;
-  courseId: string;
+  /** El tee de la partida (para cargarle CR y Slope si no los tiene). */
+  tee: { name: string; holesCount: number };
   positions: Position[];
   loops: number;
   cards: ScoringCard[];
@@ -64,9 +66,11 @@ export function RoundScoring({
   const [cardId, setCardId] = useState(initialCardId ?? cards[0]?.id ?? "");
   const [mode, setMode] = useState<"hoyo" | "tarjeta">("hoyo");
   const [position, setPosition] = useState(() => initialPosition(positions, serverScores[initialCardId ?? ""] ?? {}));
-  const [direction, setDirection] = useState<1 | -1>(1);
+  const [direction, setDirection] = useState<-1 | 0 | 1>(0);
   const [signOpen, setSignOpen] = useState(false);
   const [signMounted, setSignMounted] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [ratingMounted, setRatingMounted] = useState(false);
 
   const { scores, update, status, dirtyCards, retry, syncFromServer } = useScoresAutosave({
     initial: serverScores,
@@ -175,10 +179,18 @@ export function RoundScoring({
           setSignMounted(true);
           setSignOpen(true);
         }}
-        noRatingHref={blocker?.reason === "no-rating" ? `/canchas/${courseId}/editar` : undefined}
+        onAddRating={
+          blocker?.reason === "no-rating"
+            ? () => {
+                setRatingMounted(true);
+                setRatingOpen(true);
+              }
+            : undefined
+        }
       />
 
-      {signMounted && card.isOwner && !locked && rating && (
+      {/* Abierta sigue montada aunque la tarjeta ya figure firmada: muestra el "Firmada". */}
+      {signMounted && card.isOwner && rating && (!locked || signOpen) && (
         <SignSheet
           open={signOpen}
           onOpenChange={setSignOpen}
@@ -188,6 +200,7 @@ export function RoundScoring({
           toPar={totals.toPar}
         />
       )}
+      {ratingMounted && <RatingSheet open={ratingOpen} onOpenChange={setRatingOpen} roundId={roundId} teeName={tee.name} holesCount={tee.holesCount} />}
     </div>
   );
 }

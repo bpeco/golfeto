@@ -4,19 +4,20 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
 import { fail, friendlyDbError, fromZod, ok, type ActionResult } from "@/lib/action-result";
-import { parseDecimal } from "@/lib/format";
+import { todayInArgentina } from "@/lib/dates";
+import { parseHandicap } from "@/lib/format";
 import { declaredHandicapSchema, displayNameSchema } from "./schema";
 
 export async function saveDeclaredHandicap(_prev: ActionResult<{ value: number }> | null, formData: FormData): Promise<ActionResult<{ value: number }>> {
   const raw = String(formData.get("value") ?? "");
-  const parsed = declaredHandicapSchema.safeParse(parseDecimal(raw));
+  const parsed = declaredHandicapSchema.safeParse(parseHandicap(raw));
   if (!parsed.success) return fromZod(parsed.error);
 
   const me = await requirePlayer();
   const supabase = await createClient();
   const { error } = await supabase
     .from("player_declared_handicaps")
-    .insert({ player_id: me.id, value: parsed.data, valid_from: new Date().toISOString().slice(0, 10) });
+    .insert({ player_id: me.id, value: parsed.data, valid_from: todayInArgentina() });
   if (error) return fail(friendlyDbError(error));
   revalidatePath("/perfil");
   revalidatePath("/");

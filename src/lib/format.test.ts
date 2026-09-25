@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MINUS, fmtCount, fmtDecimal, fmtDelta, fmtIndex, fmtToPar, formatDate, formatMonth, formatRoundDate, parseDecimal } from "./format";
+import { MINUS, fmtCount, fmtDecimal, fmtDelta, fmtIndex, fmtToPar, formatDate, formatMonth, formatRoundDate, parseDecimal, parseHandicap } from "./format";
 
 describe("fechas", () => {
   it("día y mes corto en español, con o sin año", () => {
@@ -48,5 +48,20 @@ describe("números", () => {
     expect(parseDecimal("")).toBeNull();
     expect(parseDecimal("abc")).toBeNull();
     expect(parseDecimal(`${MINUS}2`)).toBe(-2);
+  });
+});
+
+describe("parseHandicap", () => {
+  it("lee el índice como se escribe, con + para los plus (adentro negativos)", () => {
+    expect(parseHandicap("18,4")).toBe(18.4);
+    expect(parseHandicap("+2,5")).toBe(-2.5);
+    expect(parseHandicap(" +0,3 ")).toBe(-0.3);
+    expect(parseHandicap("-2,5")).toBe(-2.5);
+    expect(parseHandicap("+")).toBeNull();
+    expect(parseHandicap("")).toBeNull();
+  });
+
+  it("es la inversa de fmtIndex", () => {
+    for (const v of [18.4, 0, -2.5, 54]) expect(parseHandicap(fmtIndex(v))).toBe(v);
   });
 });

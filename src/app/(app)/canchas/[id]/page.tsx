@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PenLine } from "lucide-react";
@@ -28,7 +29,11 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
   return (
     <>
       <PageHeader
-        title={course.name}
+        title={
+          <ViewTransition name={`course-${course.id}`} share="morph" default="none">
+            <span className="block truncate">{course.name}</span>
+          </ViewTransition>
+        }
         back={{ fallback: "/canchas" }}
         action={
           <Link href={`/canchas/${id}/editar`} className={buttonVariants({ variant: "ghost", size: "sm" })}>

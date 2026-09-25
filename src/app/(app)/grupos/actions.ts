@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
@@ -20,7 +20,7 @@ export async function createGroup(_prev: ActionResult | null, formData: FormData
   revalidatePath("/");
   revalidatePath("/grupos");
   await flash("Grupo creado. Compartí el link para que se sumen.");
-  redirect(`/grupos/${groupId}`);
+  redirect(`/grupos/${groupId}`, RedirectType.replace);
 }
 
 /** Se une con el código del link. Solo con un toque explícito (antes pasaba al abrir el link). */
@@ -36,7 +36,7 @@ export async function joinGroupAction(_prev: ActionResult | null, formData: Form
   revalidatePath("/");
   revalidatePath("/grupos");
   await flash(group ? `Ya estás en «${group.name}».` : "Ya estás en el grupo.");
-  redirect(`/grupos/${groupId}`);
+  redirect(`/grupos/${groupId}`, RedirectType.replace);
 }
 
 export async function regenerateInviteCode(groupId: string): Promise<ActionResult<{ code: string }>> {
@@ -73,5 +73,5 @@ export async function leaveGroup(groupId: string): Promise<ActionResult> {
   revalidatePath("/");
   revalidatePath("/grupos");
   await flash(group ? `Saliste de «${group.name}».` : "Saliste del grupo.", "info");
-  redirect("/grupos");
+  redirect("/grupos", RedirectType.replace);
 }

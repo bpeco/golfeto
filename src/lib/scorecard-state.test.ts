@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { holesLabel, initialPosition, mergePhotoRow, playedCount, signBlocker } from "./scorecard-state";
+import { holesLabel, initialPosition, playedCount, signBlocker } from "./scorecard-state";
 
 const positions = Array.from({ length: 18 }, (_, i) => ({ position: i + 1, hole: { number: i + 1, par: 4 } }));
 
@@ -35,12 +35,5 @@ describe("posición inicial y jugados", () => {
   it("con la tarjeta completa, el último", () => {
     const full = Object.fromEntries(positions.map((p) => [p.position, { strokes: 4, pickedUp: false }]));
     expect(initialPosition(positions, full)).toBe(18);
-  });
-});
-
-describe("mergePhotoRow", () => {
-  it("pisa solo los hoyos con un número válido", () => {
-    const merged = mergePhotoRow({ 1: { strokes: 5, pickedUp: false }, 2: { strokes: null, pickedUp: true } }, [4, null, 99, 3]);
-    expect(merged).toEqual({ 1: { strokes: 4, pickedUp: false }, 2: { strokes: null, pickedUp: true }, 4: { strokes: 3, pickedUp: false } });
   });
 });

@@ -61,14 +61,16 @@ export function GroupView({ group, meId, isAdmin, members, leaderboard, series, 
       <Section title="Comparación">
         <div className="-mx-4 overflow-x-auto px-4">
           <table className="w-full text-base">
-            <caption className="sr-only">Comparación de hándicap y gross entre los golfistas del grupo</caption>
+            <caption className="sr-only">Comparación de Hándicap Index y gross entre los golfistas del grupo</caption>
             <thead>
               <tr className="border-b-2 border-line-strong text-sm text-muted-foreground">
                 <th scope="col" className="h-10 pr-2 text-left font-semibold">
                   Golfista
                 </th>
                 <th scope="col" className="px-1 text-right font-semibold">
-                  Hcp
+                  <abbr title="Hándicap Index" className="no-underline">
+                    HI
+                  </abbr>
                 </th>
                 <th scope="col" className="px-1 text-right font-semibold">
                   <abbr title="Promedio de gross" className="no-underline">
@@ -116,6 +118,11 @@ export function GroupView({ group, meId, isAdmin, members, leaderboard, series, 
             icon={Flag}
             title="Todavía no jugaron juntos"
             body="Creá una partida con el grupo y aparece acá."
+            action={
+              <Link href={`/partidas/nueva?grupo=${group.id}`} className={buttonVariants({ variant: "secondary" })}>
+                Nueva partida
+              </Link>
+            }
           />
         ) : (
           <ul className="divide-y divide-border border-y border-border">

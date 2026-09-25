@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatedBoardNumber } from "@/components/ui/animated-board-number";
+import { AnimatedBoardNumber, preloadNumberFlow } from "@/components/ui/animated-board-number";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { fmtDecimal, fmtToPar } from "@/lib/format";
+import { minimumHolesToSign } from "@/lib/handicap/course";
 import { haptics } from "@/lib/haptics";
 import { signOutcomeText } from "@/lib/sign-outcome";
 import type { SignEstimate } from "@/lib/sign-estimate";
@@ -40,6 +41,11 @@ export function SignSheet({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SignSummary | null>(null);
+
+  // El índice rueda al firmar: NumberFlow se baja apenas se abre la hoja.
+  useEffect(() => {
+    if (open) void preloadNumberFlow();
+  }, [open]);
 
   function sign() {
     setError(null);
@@ -95,7 +101,7 @@ export function SignSheet({
               <Row label="Gross ajustado" value={estimate.adjustedGross} />
               <Row label="Diferencial" value={fmtDecimal(estimate.differential)} />
             </dl>
-            <p className="mt-2 text-sm text-muted-foreground">Estimado: al firmar se calcula con tu hándicap de ese momento.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Estimado: al firmar se calcula con tu Hándicap Index de ese momento.</p>
             {estimate.pickedUp > 0 && (
               <Notice tone="warn" className="mt-4">
                 {estimate.pickedUp === 1 ? "Tenés 1 Hoyo no terminado" : `Tenés ${estimate.pickedUp} Hoyos no terminados`}: para el hándicap cuentan como doble bogey neto.
@@ -103,7 +109,7 @@ export function SignSheet({
             )}
             {!estimate.acceptable && (
               <Notice tone="error" className="mt-4">
-                Faltan hoyos: hay {estimate.holesPlayed} y se necesitan al menos {estimate.holesInRound === 18 ? 10 : 9} para firmar.
+                Faltan hoyos: hay {estimate.holesPlayed} y se necesitan al menos {minimumHolesToSign(estimate.holesInRound)} para firmar.
               </Notice>
             )}
             {error && (
@@ -137,11 +143,7 @@ function Row({ label, value }: { label: string; value: ReactNode }) {
 
 function SignedPanel({ summary, onDone }: { summary: SignSummary; onDone: () => void }) {
   const hasIndex = summary.sourceAfter === "calculado" && summary.indexAfter != null;
-  const [shown, setShown] = useState(summary.sourceBefore === "calculado" ? summary.indexBefore : summary.indexAfter);
-  useEffect(() => {
-    const t = setTimeout(() => setShown(summary.indexAfter), 350);
-    return () => clearTimeout(t);
-  }, [summary.indexAfter]);
+  const from = summary.sourceBefore === "calculado" ? summary.indexBefore : undefined;
   return (
     <div className="pb-2">
       <SheetHeader>
@@ -149,9 +151,9 @@ function SignedPanel({ summary, onDone }: { summary: SignSummary; onDone: () => 
         <SheetDescription>{signOutcomeText(summary)}</SheetDescription>
       </SheetHeader>
       {hasIndex && (
-        <div className="rounded-xl bg-board p-4 text-board-foreground">
-          <p className="text-sm text-board-muted">Hándicap Index</p>
-          <AnimatedBoardNumber value={shown} kind="index" size="xl" />
+        <div className="border-y border-border py-4">
+          <p className="text-sm text-muted-foreground">Hándicap Index</p>
+          <AnimatedBoardNumber value={summary.indexAfter} from={from} kind="index" size="xl" />
         </div>
       )}
       <dl className="mt-4 grid grid-cols-3 text-center">
@@ -160,7 +162,7 @@ function SignedPanel({ summary, onDone }: { summary: SignSummary; onDone: () => 
           <dd className="font-display text-2xl font-bold tabular-nums">{summary.gross}</dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">Hcp cancha</dt>
+          <dt className="text-sm text-muted-foreground">Hándicap de cancha</dt>
           <dd className="font-display text-2xl font-bold tabular-nums">{summary.courseHandicap}</dd>
         </div>
         <div>

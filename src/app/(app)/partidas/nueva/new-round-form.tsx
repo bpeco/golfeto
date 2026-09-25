@@ -15,7 +15,8 @@ import { TeeDot } from "@/components/ui/tee-chip";
 import { Textarea } from "@/components/ui/textarea";
 import { Segmented } from "@/components/ui/toggle-group";
 import type { CourseSummary } from "@/lib/db/courses";
-import { parseDecimal } from "@/lib/format";
+import { parseHandicap } from "@/lib/format";
+import { cancelReplace, expectReplace } from "@/lib/nav-history";
 import { createRoundAndRedirect } from "../actions";
 import type { RoundInput } from "../schema";
 
@@ -88,14 +89,16 @@ export function NewRoundForm({
       holesPlayed: is9 ? "completa" : holesPlayed,
       loops: is9 ? (Number(loops) as 1 | 2) : 1,
       playerIds: Array.from(selected),
-      guests: namedGuests.map((g) => ({ name: g.name, declaredHandicap: g.hcp.trim() ? (parseDecimal(g.hcp) ?? Number.NaN) : null })),
+      guests: namedGuests.map((g) => ({ name: g.name, declaredHandicap: g.hcp.trim() ? (parseHandicap(g.hcp) ?? Number.NaN) : null })),
       notes: notes.trim() || undefined,
     };
     setError(undefined);
     setFields({});
     start(async () => {
+      expectReplace();
       const r = await createRoundAndRedirect(input);
       if (r && !r.ok) {
+        cancelReplace();
         setError(r.error);
         setFields(remapGuestFields(r.fields ?? {}, guests, namedGuests));
       }
@@ -148,7 +151,7 @@ export function NewRoundForm({
       )}
 
       <Field label="Fecha" error={fields.playedOn}>
-        <Input type="date" value={playedOn} max={today} onChange={(e) => setPlayedOn(e.target.value)} />
+        <Input type="date" value={playedOn} onChange={(e) => setPlayedOn(e.target.value)} />
       </Field>
 
       <div className="grid gap-1.5">
