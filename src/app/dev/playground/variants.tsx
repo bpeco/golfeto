@@ -17,7 +17,6 @@ import { Leaderboard } from "@/components/ui/leaderboard";
 import { List, ListRow } from "@/components/ui/list";
 import { Notice } from "@/components/ui/notice";
 import { RoundRow } from "@/components/ui/round-row";
-import { SaveStatus } from "@/components/ui/save-status";
 import { ScoreMark } from "@/components/ui/score-mark";
 import { ScorecardGrid } from "@/components/ui/scorecard-grid";
 import { Section } from "@/components/ui/section";
@@ -27,10 +26,9 @@ import { StrokeDots } from "@/components/ui/stroke-dots";
 import { TeeChip } from "@/components/ui/tee-chip";
 import { Badge } from "@/components/ui/badge";
 import { strokesOnHole } from "@/lib/handicap/course";
-import { cardTotals, type HoleScore } from "@/lib/scorecard-totals";
-import { fmtDecimal, fmtIndex, fmtToPar, formatDate } from "@/lib/format";
-import { haptics } from "@/lib/haptics";
-import { cn } from "@/lib/utils";
+import type { HoleScore } from "@/lib/scorecard-totals";
+import { fmtDecimal, fmtIndex, formatDate } from "@/lib/format";
+import { RoundScoring, type ScoringCard } from "@/app/(app)/partidas/[id]/round-scoring";
 import { ME_ID, courseHandicaps, groups, players, recentRounds, round } from "./fixtures";
 
 type Scores = Record<string, Record<number, HoleScore>>;
@@ -72,165 +70,37 @@ function RoundHeaderMock() {
 }
 
 function PartidaA() {
-  const { scores, set } = useRoundState();
-  const playable = round.scorecards.filter((c) => !c.isLegacy);
-  const [cardId, setCardId] = useState("card-bauti");
-  const [position, setPosition] = useState(7);
-  const card = round.scorecards.find((c) => c.id === cardId)!;
-  const hole = round.positions[position - 1].hole;
-  const s = scores[cardId][position];
-  const ch = courseHandicaps[cardId];
-  const received = ch != null && hole.strokeIndex != null ? strokesOnHole(ch, hole.strokeIndex) : 0;
-  const locked = !!card.signedAt;
-  const totals = cardTotals(round.positions, scores[cardId], { courseHandicap: ch });
-
+  const cards: ScoringCard[] = round.scorecards.map((c) => ({
+    id: c.id,
+    playerId: c.playerId,
+    playerName: c.playerName,
+    isGuest: c.isGuest,
+    isLegacy: c.isLegacy,
+    legacyGross: c.legacyGross,
+    signedAt: c.signedAt,
+    signature: c.signature,
+    scores: c.scores,
+    courseHandicap: courseHandicaps[c.id],
+    ownerIndex: players.find((p) => p.id === c.playerId)?.handicap.effective ?? null,
+    isOwner: c.playerId === ME_ID,
+  }));
   return (
-    <div className="relative pb-40">
+    <div>
       <RoundHeaderMock />
-      <div role="tablist" aria-label="Tarjeta" className="-mx-4 mt-3 flex gap-1 overflow-x-auto px-4">
-        {round.scorecards.map((c) => {
-          const t = cardTotals(round.positions, scores[c.id]);
-          const active = c.id === cardId;
-          return (
-            <button
-              key={c.id}
-              role="tab"
-              aria-selected={active}
-              disabled={c.isLegacy}
-              onClick={() => setCardId(c.id)}
-              className={cn(
-                "flex min-h-tap shrink-0 items-center gap-2 rounded-md border px-2.5 text-sm font-semibold",
-                active ? "border-foreground bg-foreground text-background" : "border-input text-foreground",
-                c.isLegacy && "opacity-60",
-              )}
-            >
-              {c.playerName}
-              <span className="font-display text-base tabular-nums">{c.isLegacy ? c.legacyGross : t.withStrokes ? t.gross : "—"}</span>
-              {c.isGuest && <span className="text-xs font-normal opacity-80">inv.</span>}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-5 flex items-end justify-between">
-        <div>
-          <p className="font-display text-numeral-lg font-bold">Hoyo {hole.number}</p>
-          <p className="mt-1 flex gap-4 text-base text-muted-foreground">
-            <span>
-              Par <strong className="text-foreground">{hole.par}</strong>
-            </span>
-            <span>
-              Hcp <strong className="text-foreground">{hole.strokeIndex}</strong>
-            </span>
-            <span>{hole.meters} m</span>
-          </p>
-        </div>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" aria-label="Hoyo anterior" disabled={position === 1} onClick={() => setPosition(position - 1)}>
-            <ChevronLeft />
-          </Button>
-          <Button variant="ghost" size="icon" aria-label="Hoyo siguiente" disabled={position === 18} onClick={() => setPosition(position + 1)}>
-            <ChevronRight />
-          </Button>
-        </div>
-      </div>
-      <div className="mt-2 min-h-6">{received !== 0 && <StrokeDots count={received} withText />}</div>
-
-      {locked ? (
-        <Notice tone="info" className="mt-6" title={`${card.playerName} ya firmó`}>
-          La tarjeta firmada no se puede cambiar.
-        </Notice>
-      ) : (
-        <Stepper
-          className="mt-6"
-          size="lg"
-          label={`Golpes de ${card.playerName} en el hoyo ${hole.number}`}
-          value={s?.pickedUp ? null : (s?.strokes ?? null)}
-          emptyValue={hole.par}
-          disabled={s?.pickedUp}
-          onChange={(v) => set(cardId, position, { strokes: v, pickedUp: false })}
-        >
-          <ScoreMark strokes={s?.strokes} par={hole.par} pickedUp={s?.pickedUp} size="lg" animate />
-        </Stepper>
-      )}
-      {!locked && (
-        <div className="mt-4 flex justify-center">
-          <Button
-            variant="ghost"
-            className={cn(s?.pickedUp && "bg-warn/20")}
-            aria-pressed={!!s?.pickedUp}
-            onClick={() => {
-              haptics.warn();
-              set(cardId, position, s?.pickedUp ? { strokes: null, pickedUp: false } : { strokes: null, pickedUp: true });
-            }}
-          >
-            No terminé el hoyo
-          </Button>
-        </div>
-      )}
-
-      <HoleStrip
-        className="mt-6"
-        scores={scores[cardId]}
-        current={position}
-        onPick={setPosition}
-        label={`Hoyos de ${playable.find((c) => c.id === cardId)?.playerName ?? card.playerName}`}
+      <RoundScoring
+        roundId={round.id}
+        courseId={round.course.id}
+        positions={round.positions}
+        loops={round.loops}
+        cards={cards}
+        initialCardId="card-bauti"
+        rating={{ courseRating: 70.3, slope: 125, par: 71, holesInRound: 18 }}
+        photos={[]}
+        saveAction={async () => {
+          await new Promise((r) => setTimeout(r, 300));
+          return { ok: true, data: undefined };
+        }}
       />
-
-      <div className="absolute inset-x-0 bottom-0 -mx-4 border-t border-border bg-background/95 px-4 pt-3 pb-4 shadow-raised">
-        <div className="flex items-baseline justify-between">
-          <p className="text-base">
-            Gross <strong className="font-display text-2xl tabular-nums">{totals.withStrokes ? totals.gross : "—"}</strong>{" "}
-            {totals.withStrokes > 0 && <span className={totals.toPar > 0 ? "text-score-over" : "text-score-under"}>({fmtToPar(totals.toPar)})</span>}
-          </p>
-          <SaveStatus state="saved" />
-        </div>
-        <p className="text-sm text-muted-foreground">{totals.net != null ? `Neto ${totals.net}` : "Neto al terminar"}</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Button variant="secondary">Tarjeta completa</Button>
-          <Button disabled={totals.withStrokes + totals.pickedUp < 10}>Firmar</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HoleStrip({
-  scores,
-  current,
-  onPick,
-  label,
-  className,
-}: {
-  scores: Record<number, HoleScore>;
-  current: number;
-  onPick: (p: number) => void;
-  label: string;
-  className?: string;
-}) {
-  return (
-    <div role="group" aria-label={label} className={cn("grid grid-cols-9 border-t border-l border-border", className)}>
-      {round.positions.map(({ position, hole }) => {
-        const s = scores[position];
-        const done = s && (s.strokes != null || s.pickedUp);
-        return (
-          <button
-            key={position}
-            type="button"
-            onClick={() => onPick(position)}
-            aria-current={position === current ? "step" : undefined}
-            aria-label={`Hoyo ${hole.number}${s?.pickedUp ? ", no terminado" : s?.strokes != null ? `, ${s.strokes} golpes` : ""}`}
-            className={cn(
-              "flex h-tap flex-col items-center justify-center border-r border-b border-border text-xs leading-none",
-              position === 9 && "border-r-line-strong",
-              position === current && "bg-foreground text-background",
-            )}
-          >
-            <span className={cn(position === current ? "text-background/80" : "text-muted-foreground")}>{hole.number}</span>
-            <span className="mt-0.5 font-display text-base font-bold tabular-nums">{s?.pickedUp ? "/" : (s?.strokes ?? (done ? "" : "·"))}</span>
-          </button>
-        );
-      })}
     </div>
   );
 }
