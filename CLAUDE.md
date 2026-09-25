@@ -1,3 +1,9 @@
+# Galf
+
+Anotador de golf para un grupo de amigos (Next.js + Supabase + Vercel + Claude visión).
+
+**Al arrancar una sesión, leer en este orden:** `docs/handoff.md` (infra y estado operativo), `docs/roadmap.md` (hecho / pendiente), `CONTEXT.md` (vocabulario obligatorio), `docs/adr/` (decisiones), `docs/db-design.md` (convenciones de base de datos). Al cerrar una sesión, actualizar `docs/roadmap.md` y, si cambió la infraestructura, `docs/handoff.md`.
+
 ## Agent skills
 
 ### Issue tracker
