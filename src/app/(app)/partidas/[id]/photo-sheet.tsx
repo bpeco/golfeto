@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Images } from "lucide-react";
+import { Check, Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CellInput } from "@/components/ui/cell-input";
 import { Notice } from "@/components/ui/notice";
@@ -9,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { fmtCount } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { Step } from "./photo-flow";
 import type { ExtractionResult } from "./photo-actions";
 
@@ -93,26 +93,53 @@ export default function PhotoSheet({
   );
 }
 
+type StepState = "done" | "current" | "next";
+
+/**
+ * Mientras sube y lee: los pasos reales del proceso, con el actual marcado, y la foto al lado.
+ * Sin contar segundos: un número que sube hace la espera más larga.
+ */
 function Progress({ step }: { step: Extract<Step, { kind: "uploading" | "reading" }> }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (step.kind !== "reading") return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [step.kind]);
-  const seconds = step.kind === "reading" ? Math.max(0, Math.round((now - step.since) / 1000)) : 0;
+  const uploading = step.kind === "uploading";
+  const steps: { label: string; state: StepState }[] = [
+    { label: "Subir la foto", state: uploading ? "current" : "done" },
+    { label: "Leer los golpes", state: uploading ? "next" : "current" },
+    { label: "Revisar y cargar", state: "next" },
+  ];
   return (
-    <div aria-live="polite">
+    <>
       <SheetHeader>
-        <SheetTitle className="flex items-center gap-2">
-          <Spinner className="size-5" /> {step.kind === "uploading" ? "Subiendo la foto" : "Leyendo la tarjeta"}
-        </SheetTitle>
-        <SheetDescription>{step.kind === "uploading" ? "La achicamos para que suba rápido." : `Suele tardar 10–20 segundos. Van ${seconds}.`}</SheetDescription>
+        <SheetTitle aria-live="polite">{uploading ? "Subiendo la foto" : "Leyendo la tarjeta"}</SheetTitle>
+        <SheetDescription>Suele tardar menos de medio minuto.</SheetDescription>
       </SheetHeader>
-      {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:) */}
-      <img src={step.preview} alt="Vista previa de la foto" className="max-h-72 w-full rounded-md object-contain opacity-80" />
-    </div>
+      <div className="flex items-start gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:) */}
+        <img src={step.preview} alt="La foto que se está leyendo" className="aspect-[3/4] w-24 shrink-0 rounded-md border border-border object-cover" />
+        <ol className="grid flex-1 gap-3 pt-1">
+          {steps.map((s) => (
+            <li key={s.label} className="flex min-h-7 items-center gap-3" aria-current={s.state === "current" ? "step" : undefined}>
+              <StepMark state={s.state} />
+              <span className={cn("text-base", s.state === "current" ? "font-semibold text-foreground" : s.state === "done" ? "text-foreground" : "text-muted-foreground")}>
+                {s.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </>
   );
+}
+
+function StepMark({ state }: { state: StepState }) {
+  if (state === "done") {
+    return (
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+        <Check role="img" aria-label="listo" className="size-4" strokeWidth={3} />
+      </span>
+    );
+  }
+  if (state === "current") return <Spinner label="en curso" className="size-6 shrink-0 text-primary" />;
+  return <span aria-hidden className="size-6 shrink-0 rounded-full border-2 border-muted-foreground/50" />;
 }
 
 function Review({
