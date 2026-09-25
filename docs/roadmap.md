@@ -46,8 +46,23 @@ Ideas surgidas del diseño, no comprometidas. Priorizar según lo que pida el gr
 - [ ] Notificación cuando te cargan golpes y falta tu firma
 - [ ] Vincular invitado ↔ golfista desde el grupo (hoy solo desde el propio Perfil)
 - [ ] Importar canchas en bulk (golfapi.io CSV) si se quiere "todas las de Argentina"
-- [ ] Ícono y splash propios (hoy: una "G" generada)
+- [ ] Ícono y splash propios (hoy: una "G" generada) → cubierto por la Fase 4 del rediseño
 - [ ] Tests de integración contra Supabase (RLS, firmas, cascadas) — hoy validado a mano por el subagente de DB
+
+## Fase 4 — Rediseño UI/UX "tarjeta y pizarra" (planificado 2026-09-25, en curso)
+
+Plan completo: `docs/plans/2026-09-25-rediseno-ui-ux.md` (contexto, decisiones, brief de diseño, arquitectura, fases, verificación). Rama de trabajo `claude/sleepy-wozniak-v86mqg`; producción (`claude/vigilant-bardeen-6iwzid`) no se toca hasta el merge. **Sin cambios en la base de datos**: lo que los necesite queda en "Requiere DB" más abajo. Si el dueño no está para las puertas de decisión, se toma la opción recomendada (variante A, tipografía A) y queda como provisional en `DESIGN.md`.
+
+- [ ] Fase 0 — preparación: sync con producción, deps, `shadcn init` (Base UI), Impeccable + `PRODUCT.md`, playground `/dev/playground`, capturas baseline
+- [ ] Fase 1 — fundamentos: tokens OKLCH, fuentes, primitivas propias y de shadcn, migración de clases, `lint:tokens`, `contrast`; **Puerta 1** (variante y tipografía → `DESIGN.md`)
+- [ ] Fase 2 — shell y navegación: route group `(app)`, barra con 5 pestañas y estado activo, `/grupos`, skeletons, `error.tsx`/`not-found.tsx`, títulos, View Transitions
+- [ ] Fase 3 — feedback: `ActionResult`, zod en español, `useActionState`, toasts, `ConfirmSheet` (firmar / desfirmar con motivo), firma que muestra el índice nuevo, autosave con rollback, haptics, `/unirse` con botón "Unirme"
+- [ ] Fase 4 — arranque y marca: marca (G con círculo de birdie), íconos 192/512/maskable/apple, splash iOS, manifest, `isPublicPath`, reveal de login y de primer Inicio
+- [ ] Fase 5 — pantallas: Partida (hoyo a hoyo + tarjeta completa), Inicio, Grupo, Golfista, Partidas, Nueva partida, Canchas, Perfil, Login
+- [ ] Fase 6 — accesibilidad, bundle, docs (`DESIGN.md`, `docs/design.md`, ADR-0004, handoff, README); crítica con Impeccable / plugin Design; `code-review`
+- [ ] **Puerta 2** — partida real de prueba del dueño con la PWA instalada; ajustes
+
+Requiere DB (excluido del rediseño; avisar al dueño antes): `peek_invite(code)` para mostrar el nombre del grupo antes de unirse; notificación de firma pendiente; preferencias en el servidor (el tema queda en localStorage); conflicto entre dos teléfonos anotando la misma tarjeta.
 
 ## Deuda técnica conocida
 
