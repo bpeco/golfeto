@@ -170,10 +170,13 @@ export function NewRoundForm({
             onValueChange={setHolesPlayed}
             options={[
               { value: "completa", label: "18 hoyos" },
-              { value: "ida", label: "Ida (1–9)" },
-              { value: "vuelta", label: "Vuelta (10–18)" },
+              { value: "ida", label: "Ida" },
+              { value: "vuelta", label: "Vuelta" },
             ]}
           />
+        )}
+        {!is9 && holesPlayed !== "completa" && (
+          <p className="text-sm text-muted-foreground">{holesPlayed === "ida" ? "Hoyos 1 a 9." : "Hoyos 10 a 18."} El diferencial de 9 hoyos se convierte a 18 como pide el WHS.</p>
         )}
       </div>
 

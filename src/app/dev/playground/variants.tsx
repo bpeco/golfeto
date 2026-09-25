@@ -26,7 +26,9 @@ import { fmtDecimal, fmtIndex, formatDate } from "@/lib/format";
 import { RoundScoring, type ScoringCard } from "@/app/(app)/partidas/[id]/round-scoring";
 import { HomeView } from "@/app/(app)/home-view";
 import { GroupView } from "@/app/(app)/grupos/[id]/group-view";
-import { ME_ID, courseHandicaps, groups, players, recentRounds, round } from "./fixtures";
+import { NewRoundForm } from "@/app/(app)/partidas/nueva/new-round-form";
+import { CourseForm } from "@/app/(app)/canchas/course-form";
+import { ME_ID, courseDetail, courseHandicaps, courses, groups, players, recentRounds, round } from "./fixtures";
 
 type Scores = Record<string, Record<number, HoleScore>>;
 
@@ -335,6 +337,42 @@ export function GroupScreen() {
         cards: p.handicap.signedCount,
       }))}
       rounds={recentRounds}
+    />
+  );
+}
+
+export function NewRoundScreen() {
+  return (
+    <NewRoundForm
+      today="2026-09-25"
+      me={{ id: ME_ID, name: "Bauti" }}
+      courses={courses}
+      groups={[{ id: "group-sabado", name: "Los del sábado", members: players.map((p) => ({ id: p.id, name: p.name })) }]}
+      preselectedGroup="group-sabado"
+    />
+  );
+}
+
+export function CourseFormScreen() {
+  const v = courseDetail.version!;
+  const numberById = new Map(v.holes.map((h) => [h.id, h.number]));
+  return (
+    <CourseForm
+      courseId={courseDetail.id}
+      today="2026-09-25"
+      initial={{
+        name: courseDetail.name,
+        club: courseDetail.club,
+        city: courseDetail.city,
+        holesCount: v.holesCount,
+        holes: v.holes,
+        tees: v.tees.map((t) => ({
+          name: t.name,
+          courseRating: t.courseRating,
+          slope: t.slope,
+          distances: Object.fromEntries(Object.entries(t.distances).map(([id, m]) => [numberById.get(id) ?? 0, m])),
+        })),
+      }}
     />
   );
 }
