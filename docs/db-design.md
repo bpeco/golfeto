@@ -96,9 +96,14 @@ elige la versión con `valid_from <= played_on and (valid_to is null or valid_to
 
 ## RLS
 
-Helpers `security definer` con `search_path = public`: `current_player_id`, `is_group_member`, `is_group_admin`,
-`shares_group_with`, `is_round_participant`, `can_view_round` (todos filtran bajas). RPCs: `create_group`,
-`join_group` (definer: el que entra aún no ve el grupo), `sign_scorecard`, `unsign_scorecard` (invoker).
+Helpers `security definer` en el schema `private` (no expuesto por PostgREST, así que no son RPC):
+`current_player_id`, `is_group_member`, `is_group_admin`, `shares_group_with`, `is_round_participant`,
+`can_view_round` (todos filtran bajas). `authenticated` **necesita** `EXECUTE` sobre ellos: las políticas y los
+triggers de auditoría (invoker) los ejecutan con el rol del que consulta. Revocarlo (como hizo 0002 para callar el
+linter) rompe toda lectura con "permission denied for function" → 403; 0004 los movió a `private`. Las funciones
+que los llaman por nombre llevan `search_path = public, private`. RPCs: `create_group`, `join_group` (definer: el
+que entra aún no ve el grupo), `claim_guest` y `claimable_guests` (definer: el historial importado no es visible
+por RLS hasta reclamarlo), `sign_scorecard`, `unsign_scorecard` (invoker).
 `auth.uid()` y `current_player_id()` van envueltos en `(select ...)` para que se evalúen una vez por consulta.
 Golfistas y canchas son visibles y editables por todo `authenticated`; grupos sólo por miembros; partidas, tarjetas,
 golpes, firmas y fotos por participantes y por quien comparte grupo con algún participante (ADR-0002).

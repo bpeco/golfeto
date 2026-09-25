@@ -1377,18 +1377,20 @@ export type Database = {
     Functions: {
       attach_append_only: { Args: { tbl: unknown }; Returns: undefined }
       attach_audit: { Args: { tbl: unknown }; Returns: undefined }
-      can_view_round: { Args: { r: string }; Returns: boolean }
       claim_guest: { Args: { p_guest_id: string }; Returns: undefined }
+      claimable_guests: {
+        Args: never
+        Returns: {
+          cards: number
+          display_name: string
+          id: string
+        }[]
+      }
       create_group: {
         Args: { p_invite_code?: string; p_name: string }
         Returns: string
       }
-      current_player_id: { Args: never; Returns: string }
-      is_group_admin: { Args: { g: string }; Returns: boolean }
-      is_group_member: { Args: { g: string }; Returns: boolean }
-      is_round_participant: { Args: { r: string }; Returns: boolean }
       join_group: { Args: { code: string }; Returns: string }
-      shares_group_with: { Args: { p: string }; Returns: boolean }
       sign_scorecard: {
         Args: {
           p_adjusted_gross: number
