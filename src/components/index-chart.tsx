@@ -4,9 +4,9 @@ import { useId, useMemo, useState } from "react";
 
 export type Series = { id: string; name: string; points: { date: string; value: number }[] };
 
-// Paleta categórica validada (dataviz/validate_palette.js, light y dark): orden fijo, nunca cíclico.
-const LIGHT = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
-const DARK = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
+// Paleta categórica validada (skill dataviz, claro y oscuro) en los tokens --chart-1..8 de
+// globals.css: orden fijo, nunca cíclico.
+const seriesColor = (i: number) => `var(--chart-${i + 1})`;
 
 /**
  * Evolución del Hándicap Index (línea por golfista). Eje Y invertido no: menor es mejor,
@@ -24,7 +24,7 @@ export function IndexChart({ series, title }: { series: Series[]; title: string 
   );
   const values = visible.flatMap((s) => s.points.map((p) => p.value));
   if (dates.length === 0 || values.length === 0) {
-    return <p className="text-sm text-muted">Sin tarjetas firmadas suficientes para graficar (mínimo 3).</p>;
+    return <p className="text-sm text-muted-foreground">Sin tarjetas firmadas suficientes para graficar (mínimo 3).</p>;
   }
 
   const W = 640;
@@ -64,14 +64,10 @@ export function IndexChart({ series, title }: { series: Series[]; title: string 
   }
 
   return (
-    <figure className="viz-root rounded-2xl border border-border bg-surface p-3">
-      <style>{`
-        .viz-root { --viz-grid: color-mix(in oklab, var(--foreground) 12%, transparent); ${LIGHT.map((c, i) => `--s${i}: ${c};`).join(" ")} }
-        @media (prefers-color-scheme: dark) { .viz-root { ${DARK.map((c, i) => `--s${i}: ${c};`).join(" ")} } }
-      `}</style>
+    <figure className="rounded-lg border border-border bg-card p-3">
       <figcaption className="mb-2 flex items-center justify-between">
         <span className="text-sm font-semibold">{title}</span>
-        <button type="button" className="text-xs text-muted underline" onClick={() => setTable(!table)}>
+        <button type="button" className="text-xs text-muted-foreground underline" onClick={() => setTable(!table)}>
           {table ? "Ver gráfico" : "Ver tabla"}
         </button>
       </figcaption>
@@ -79,7 +75,7 @@ export function IndexChart({ series, title }: { series: Series[]; title: string 
       {table ? (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="text-muted">
+            <thead className="text-muted-foreground">
               <tr>
                 <th className="py-1 text-left">Fecha</th>
                 {visible.map((s) => <th key={s.id} className="py-1 text-right">{s.name}</th>)}
@@ -102,7 +98,7 @@ export function IndexChart({ series, title }: { series: Series[]; title: string 
         <>
           <svg
             viewBox={`0 0 ${W} ${H}`}
-            className="w-full touch-none"
+            className="w-full touch-pan-y"
             role="img"
             aria-labelledby={`${uid}-t`}
             onPointerMove={onMove}
@@ -111,13 +107,13 @@ export function IndexChart({ series, title }: { series: Series[]; title: string 
             <title id={`${uid}-t`}>{title}</title>
             {ticks.map((t) => (
               <g key={t}>
-                <line x1={m.left} x2={W - m.right} y1={y(t)} y2={y(t)} stroke="var(--viz-grid)" strokeWidth={1} />
-                <text x={m.left - 6} y={y(t) + 3} fontSize={10} textAnchor="end" fill="var(--muted)">{t}</text>
+                <line x1={m.left} x2={W - m.right} y1={y(t)} y2={y(t)} stroke="var(--chart-grid)" strokeWidth={1} />
+                <text x={m.left - 6} y={y(t) + 3} fontSize={10} textAnchor="end" fill="var(--muted-foreground)">{t}</text>
               </g>
             ))}
-            <text x={m.left - 6} y={m.top - 4} fontSize={9} textAnchor="end" fill="var(--muted)">↓ mejor</text>
+            <text x={m.left - 6} y={m.top - 4} fontSize={9} textAnchor="end" fill="var(--muted-foreground)">↓ mejor</text>
             {[dates[0], dates.at(-1)!].map((d, i) => (
-              <text key={d + i} x={x(d)} y={H - 8} fontSize={10} textAnchor={i === 0 ? "start" : "end"} fill="var(--muted)">
+              <text key={d + i} x={x(d)} y={H - 8} fontSize={10} textAnchor={i === 0 ? "start" : "end"} fill="var(--muted-foreground)">
                 {shortDate(d)}
               </text>
             ))}
@@ -127,9 +123,9 @@ export function IndexChart({ series, title }: { series: Series[]; title: string 
               const last = pts.at(-1)!;
               return (
                 <g key={s.id}>
-                  <path d={d} fill="none" stroke={`var(--s${i})`} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-                  <circle cx={x(last.date)} cy={y(last.value)} r={6} fill="var(--surface)" />
-                  <circle cx={x(last.date)} cy={y(last.value)} r={4} fill={`var(--s${i})`} />
+                  <path d={d} fill="none" stroke={seriesColor(i)} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                  <circle cx={x(last.date)} cy={y(last.value)} r={6} fill="var(--card)" />
+                  <circle cx={x(last.date)} cy={y(last.value)} r={4} fill={seriesColor(i)} />
                   <text x={x(last.date) + 8} y={y(last.value) + 3} fontSize={10} fill="var(--foreground)">
                     {last.value.toFixed(1)}
                   </text>
@@ -142,12 +138,12 @@ export function IndexChart({ series, title }: { series: Series[]; title: string 
           </svg>
           {hoverDate && (
             <div className="mt-1 rounded-xl bg-background px-3 py-2 text-xs">
-              <p className="mb-1 text-muted">{shortDate(hoverDate)}</p>
+              <p className="mb-1 text-muted-foreground">{shortDate(hoverDate)}</p>
               {readout.map((r) => (
                 <p key={r.name} className="flex items-center gap-2">
-                  <span className="inline-block h-0.5 w-4" style={{ background: `var(--s${r.color})` }} />
+                  <span className="inline-block h-0.5 w-4" style={{ background: seriesColor(r.color) }} />
                   <strong className="tabular-nums">{r.value == null ? "—" : r.value.toFixed(1)}</strong>
-                  <span className="text-muted">{r.name}</span>
+                  <span className="text-muted-foreground">{r.name}</span>
                 </p>
               ))}
             </div>
@@ -156,7 +152,7 @@ export function IndexChart({ series, title }: { series: Series[]; title: string 
             <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
               {visible.map((s, i) => (
                 <li key={s.id} className="flex items-center gap-1.5">
-                  <span className="inline-block h-0.5 w-4" style={{ background: `var(--s${i})` }} />
+                  <span className="inline-block h-0.5 w-4" style={{ background: seriesColor(i) }} />
                   {s.name}
                 </li>
               ))}

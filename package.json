@@ -10,15 +10,26 @@
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
     "screenshots": "node scripts/screenshots.mjs",
-    "bundle": "node scripts/bundle-size.mjs"
+    "bundle": "node scripts/bundle-size.mjs",
+    "lint:tokens": "node scripts/lint-tokens.mjs",
+    "contrast": "node scripts/contrast.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
+    "@base-ui/react": "1.8.0",
+    "@number-flow/react": "0.6.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.1",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.48.0",
+    "motion": "13.4.4",
     "next": "16.3.6",
+    "next-themes": "0.4.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "sonner": "2.0.8",
+    "tailwind-merge": "3.7.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

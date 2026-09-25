@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Shell } from "@/components/shell";
-import { Card, Empty, fmtIndex, formatDate } from "@/components/ui";
+import { Card, Empty } from "@/components/ui/legacy";
+import { fmtIndex, formatDate } from "@/lib/format";
 import { IndexChart } from "@/components/index-chart";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
@@ -59,13 +60,13 @@ export default async function PlayerPage({
 
       {others.size > 0 && (
         <section className="mt-6 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Cara a cara</h2>
+          <h2 className="text-base font-semibold">Cara a cara</h2>
           <div className="flex flex-wrap gap-2">
             {Array.from(others, ([oid, name]) => (
               <Link
                 key={oid}
                 href={`/golfistas/${id}?vs=${oid}`}
-                className={`rounded-full border px-3 py-1.5 text-sm ${oid === vs ? "border-accent bg-accent text-accent-foreground" : "border-border bg-surface"}`}
+                className={`rounded-full border px-3 py-1.5 text-sm ${oid === vs ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}
               >
                 {name}
               </Link>
@@ -79,20 +80,20 @@ export default async function PlayerPage({
                 <Stat label={rival.name} value={fmtIndex(rival.handicap.effective)} />
               </div>
               {h2h.sharedRounds.length === 0 ? (
-                <p className="mt-3 text-center text-xs text-muted">Todavía no jugaron una partida juntos con las dos tarjetas firmadas.</p>
+                <p className="mt-3 text-center text-xs text-muted-foreground">Todavía no jugaron una partida juntos con las dos tarjetas firmadas.</p>
               ) : (
                 <ul className="mt-3 divide-y divide-border text-sm">
                   {h2h.sharedRounds.map((r) => (
                     <li key={r.roundId} className="flex items-center justify-between py-1.5">
-                      <Link href={`/partidas/${r.roundId}`} className="text-muted">{formatDate(r.playedOn)} · {r.courseName}</Link>
+                      <Link href={`/partidas/${r.roundId}`} className="text-muted-foreground">{formatDate(r.playedOn)} · {r.courseName}</Link>
                       <span className="tabular-nums">
-                        <strong className={r.mine < r.theirs ? "text-accent" : ""}>{r.mine}</strong> – <strong className={r.theirs < r.mine ? "text-accent" : ""}>{r.theirs}</strong>
+                        <strong className={r.mine < r.theirs ? "text-primary" : ""}>{r.mine}</strong> – <strong className={r.theirs < r.mine ? "text-primary" : ""}>{r.theirs}</strong>
                       </span>
                     </li>
                   ))}
                 </ul>
               )}
-              <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs text-muted">
+              <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs text-muted-foreground">
                 <span>Promedio {stats.avgGross ?? "—"}</span>
                 <span>Promedio {rival.avgGross ?? "—"}</span>
               </div>
@@ -102,7 +103,7 @@ export default async function PlayerPage({
       )}
 
       <section className="mt-6 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Tarjetas firmadas</h2>
+        <h2 className="text-base font-semibold">Tarjetas firmadas</h2>
         {stats.cards.length === 0 ? (
           <Empty>Sin tarjetas firmadas.</Empty>
         ) : (
@@ -111,10 +112,10 @@ export default async function PlayerPage({
               <Link key={c.scorecardId} href={`/partidas/${c.roundId}?j=${c.scorecardId}`} className="flex items-center justify-between px-4 py-2.5">
                 <div>
                   <p className="text-sm font-medium">{c.courseName}{c.isLegacy ? " · histórica" : ""}</p>
-                  <p className="text-xs text-muted">{c.dateApproximate ? "~" : ""}{formatDate(c.playedOn)} · dif. {c.differential.toFixed(1)}</p>
+                  <p className="text-xs text-muted-foreground">{c.dateApproximate ? "~" : ""}{formatDate(c.playedOn)} · dif. {c.differential.toFixed(1)}</p>
                 </div>
                 <span className="text-lg font-bold tabular-nums">
-                  {c.gross} <span className="text-xs font-normal text-muted">{c.gross - c.par > 0 ? `+${c.gross - c.par}` : c.gross - c.par}</span>
+                  {c.gross} <span className="text-xs font-normal text-muted-foreground">{c.gross - c.par > 0 ? `+${c.gross - c.par}` : c.gross - c.par}</span>
                 </span>
               </Link>
             ))}
@@ -128,7 +129,7 @@ export default async function PlayerPage({
 function Stat({ label, value, big }: { label: string; value: string; big?: boolean }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`${big ? "text-3xl" : "text-xl"} font-black tabular-nums`}>{value}</p>
     </div>
   );

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Shell } from "@/components/shell";
-import { Card, Empty, LinkButton } from "@/components/ui";
+import { Card, Empty, LinkButton } from "@/components/ui/legacy";
 import { listCourses } from "@/lib/db/courses";
 
 export default async function CoursesPage() {
@@ -14,7 +14,7 @@ export default async function CoursesPage() {
           {courses.map((c) => (
             <Link key={c.id} href={`/canchas/${c.id}`} className="block px-4 py-3">
               <p className="font-medium">{c.name}</p>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-muted-foreground">
                 {[c.club, c.city].filter(Boolean).join(" · ")}
                 {c.version ? ` · ${c.version.holesCount} hoyos` : " · sin versión"}
                 {c.tees.length ? ` · ${c.tees.map((t) => t.name).join(", ")}` : ""}

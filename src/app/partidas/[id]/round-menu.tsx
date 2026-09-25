@@ -11,7 +11,7 @@ export function RoundMenu({ roundId, canDelete }: { roundId: string; canDelete: 
     <div className="text-right">
       <button
         disabled={pending}
-        className="text-xs text-red-600 underline"
+        className="text-sm text-destructive underline"
         onClick={() => {
           if (confirm("¿Dar de baja la partida? Solo se puede si nadie firmó.")) {
             start(async () => {
@@ -23,7 +23,7 @@ export function RoundMenu({ roundId, canDelete }: { roundId: string; canDelete: 
       >
         Dar de baja
       </button>
-      {error && <p className="max-w-40 text-[10px] text-red-600">{error}</p>}
+      {error && <p className="max-w-40 text-xs text-destructive">{error}</p>}
     </div>
   );
 }

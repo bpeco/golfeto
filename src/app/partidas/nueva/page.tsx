@@ -1,5 +1,5 @@
 import { Shell } from "@/components/shell";
-import { Empty, LinkButton } from "@/components/ui";
+import { Empty, LinkButton } from "@/components/ui/legacy";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
 import { listCourses } from "@/lib/db/courses";

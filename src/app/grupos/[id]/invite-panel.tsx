@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import { regenerateInviteCode, revokeInviteCode } from "../actions";
 
 export function InvitePanel({
@@ -39,7 +39,7 @@ export function InvitePanel({
     <div className="space-y-3">
       {link ? (
         <>
-          <p className="break-all rounded-xl bg-background px-3 py-2 font-mono text-sm">{link}</p>
+          <p className="break-all rounded-xl bg-background px-3 py-2 text-sm">{link}</p>
           <div className="flex flex-wrap gap-2">
             <Button onClick={share}>{copied ? "Copiado" : "Compartir link"}</Button>
             {isAdmin && (
@@ -47,7 +47,7 @@ export function InvitePanel({
                 <Button variant="secondary" disabled={pending} onClick={() => start(() => void regenerateInviteCode(groupId))}>
                   Generar otro
                 </Button>
-                <Button variant="danger" disabled={pending} onClick={() => start(() => void revokeInviteCode(groupId))}>
+                <Button variant="destructive-outline" disabled={pending} onClick={() => start(() => void revokeInviteCode(groupId))}>
                   Revocar
                 </Button>
               </>
@@ -56,7 +56,7 @@ export function InvitePanel({
         </>
       ) : (
         <>
-          <p className="text-sm text-muted">No hay link de invitación activo.</p>
+          <p className="text-sm text-muted-foreground">No hay link de invitación activo.</p>
           {isAdmin && (
             <Button variant="secondary" disabled={pending} onClick={() => start(() => void regenerateInviteCode(groupId))}>
               Generar link

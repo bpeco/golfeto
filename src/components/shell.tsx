@@ -17,7 +17,7 @@ export function Shell({
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
         {back && (
-          <Link href={back} aria-label="Volver" className="-ml-1 rounded-full p-1 text-muted">
+          <Link href={back} aria-label="Volver" className="-ml-1 rounded-full p-1 text-muted-foreground">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M15 18l-6-6 6-6" />
             </svg>
@@ -44,7 +44,7 @@ function Nav() {
       <ul className="mx-auto flex max-w-lg justify-around px-2 pb-[env(safe-area-inset-bottom)]">
         {items.map((it) => (
           <li key={it.href}>
-            <Link href={it.href} className="flex flex-col items-center gap-0.5 px-3 py-2 text-xs text-muted">
+            <Link href={it.href} className="flex flex-col items-center gap-0.5 px-3 py-2 text-xs text-muted-foreground">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d={it.icon} />
               </svg>

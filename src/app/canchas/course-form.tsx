@@ -3,7 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { resizeImage } from "@/lib/image-resize";
 import { readCourseCard } from "./photo-actions";
-import { Button, ErrorBanner, Field, inputClass } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { ErrorBanner, Field, inputClass } from "@/components/ui/legacy";
 import { saveCourseAndRedirect } from "./actions";
 import type { CourseInput } from "./schema";
 
@@ -138,7 +139,7 @@ export function CourseForm({
         <Button type="button" variant="secondary" disabled={reading} onClick={() => fileInput.current?.click()}>
           {reading ? "Leyendo la tarjeta…" : "📷 Leer la tarjeta del club"}
         </Button>
-        <p className="mt-1 text-xs text-muted">Sacale una foto a la tarjeta impresa (par, hándicap de hoyo, distancias) y se prellena todo.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Sacale una foto a la tarjeta impresa (par, hándicap de hoyo, distancias) y se prellena todo.</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
@@ -166,11 +167,11 @@ export function CourseForm({
       <section>
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="font-semibold">Hoyos</h2>
-          <span className="text-sm text-muted">Par {totalPar}</span>
+          <span className="text-sm text-muted-foreground">Par {totalPar}</span>
         </div>
-        <div className="overflow-x-auto rounded-2xl border border-border">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
-            <thead className="bg-background text-xs text-muted">
+            <thead className="bg-background text-xs text-muted-foreground">
               <tr>
                 <th className="px-2 py-2 text-left">Hoyo</th>
                 <th className="px-2 py-2">Par</th>
@@ -186,7 +187,7 @@ export function CourseForm({
                   <td className="px-2 py-1 font-medium">{i + 1}</td>
                   <td className="px-1 py-1">
                     <select
-                      className="w-14 rounded-lg border border-border bg-surface px-1 py-1"
+                      className="w-14 rounded-lg border border-border bg-card px-1 py-1"
                       value={h.par}
                       onChange={(e) => setHoles(holes.map((x, j) => (j === i ? { ...x, par: e.target.value } : x)))}
                     >
@@ -196,7 +197,7 @@ export function CourseForm({
                   <td className="px-1 py-1">
                     <input
                       inputMode="numeric"
-                      className="w-12 rounded-lg border border-border bg-surface px-1 py-1 text-center"
+                      className="w-12 rounded-lg border border-border bg-card px-1 py-1 text-center"
                       value={h.strokeIndex}
                       onChange={(e) => setHoles(holes.map((x, j) => (j === i ? { ...x, strokeIndex: e.target.value } : x)))}
                     />
@@ -206,7 +207,7 @@ export function CourseForm({
                       <input
                         inputMode="numeric"
                         placeholder="m"
-                        className="w-16 rounded-lg border border-border bg-surface px-1 py-1 text-center"
+                        className="w-16 rounded-lg border border-border bg-card px-1 py-1 text-center"
                         value={t.distances[i + 1] ?? ""}
                         onChange={(e) =>
                           setTees(tees.map((x, j) => (j === ti ? { ...x, distances: { ...x.distances, [i + 1]: e.target.value } } : x)))
@@ -224,7 +225,7 @@ export function CourseForm({
       <section className="space-y-3">
         <h2 className="font-semibold">Tees</h2>
         {tees.map((t, ti) => (
-          <div key={ti} className="grid grid-cols-[1fr_auto_auto_auto] items-end gap-2 rounded-2xl border border-border p-3">
+          <div key={ti} className="grid grid-cols-[1fr_auto_auto_auto] items-end gap-2 rounded-lg border border-border p-3">
             <Field label="Nombre">
               <input
                 list="tee-names"
@@ -252,7 +253,7 @@ export function CourseForm({
             <button
               type="button"
               aria-label="Quitar tee"
-              className="pb-3 text-muted"
+              className="pb-3 text-muted-foreground"
               onClick={() => setTees(tees.filter((_, j) => j !== ti))}
               disabled={tees.length === 1}
             >
@@ -266,7 +267,7 @@ export function CourseForm({
         <Button type="button" variant="secondary" onClick={() => setTees([...tees, { name: "", courseRating: "", slope: "", distances: {} }])}>
           + Agregar tee
         </Button>
-        <p className="text-xs text-muted">CR y Slope salen de la tarjeta del club o de la AAG. Sin ellos no se puede calcular el hándicap en esta cancha.</p>
+        <p className="text-xs text-muted-foreground">CR y Slope salen de la tarjeta del club o de la AAG. Sin ellos no se puede calcular el hándicap en esta cancha.</p>
       </section>
 
       <Button className="w-full" disabled={pending || !name.trim()} onClick={submit}>

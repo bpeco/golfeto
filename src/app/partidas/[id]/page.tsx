@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Shell } from "@/components/shell";
-import { formatDate } from "@/components/ui";
+import { formatDate } from "@/lib/format";
 import { requirePlayer } from "@/lib/db/player";
 import { effectiveTeeRating, getRound } from "@/lib/db/rounds";
 import { getHandicapsFor } from "@/lib/db/handicap";
@@ -45,7 +45,7 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
 
   return (
     <Shell title={title} back="/partidas" action={<RoundMenu roundId={round.id} canDelete={round.createdBy === me.id} />}>
-      <p className="mb-3 text-xs text-muted">{subtitle}</p>
+      <p className="mb-3 text-xs text-muted-foreground">{subtitle}</p>
 
       <PlayerTabs
         roundId={round.id}

@@ -19,7 +19,7 @@ export function MemberActions({
     return (
       <button
         disabled={pending}
-        className="text-xs text-muted underline"
+        className="text-xs text-muted-foreground underline"
         onClick={() => {
           if (confirm("¿Salir del grupo?")) start(() => leaveGroup(groupId));
         }}
@@ -32,7 +32,7 @@ export function MemberActions({
   return (
     <button
       disabled={pending}
-      className="text-xs text-red-600 underline"
+      className="text-sm text-destructive underline"
       onClick={() => {
         if (confirm("¿Sacar del grupo?")) start(() => void removeMember(groupId, memberId));
       }}

@@ -12,7 +12,7 @@ export default async function EditCoursePage({ params }: { params: Promise<{ id:
 
   return (
     <Shell title={`Editar ${course.name}`} back={`/canchas/${id}`}>
-      <p className="mb-4 text-sm text-muted">
+      <p className="mb-4 text-sm text-muted-foreground">
         Guardar crea una versión nueva vigente desde la fecha elegida. Las partidas ya jugadas siguen atadas a la versión de su fecha.
       </p>
       <CourseForm

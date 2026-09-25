@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Button, ErrorBanner, Field, inputClass } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { ErrorBanner, Field, inputClass } from "@/components/ui/legacy";
 import type { CourseSummary } from "@/lib/db/courses";
 import { createRoundAndRedirect } from "../actions";
 import type { RoundInput } from "../schema";
@@ -76,7 +77,7 @@ export function NewRoundForm({
     <div className="space-y-5">
       <ErrorBanner message={error} />
       {usable.length < courses.length && (
-        <p className="text-xs text-muted">Algunas canchas no aparecen porque no tienen tees cargados.</p>
+        <p className="text-xs text-muted-foreground">Algunas canchas no aparecen porque no tienen tees cargados.</p>
       )}
       <Field label="Cancha">
         <select className={inputClass} value={courseId} onChange={(e) => pickCourse(e.target.value)}>
@@ -121,14 +122,14 @@ export function NewRoundForm({
               type="button"
               onClick={() => toggle(p.id)}
               className={`rounded-full border px-3 py-1.5 text-sm ${
-                selected.has(p.id) ? "border-accent bg-accent text-accent-foreground" : "border-border bg-surface"
+                selected.has(p.id) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"
               }`}
             >
               {p.name}
             </button>
           ))}
         </div>
-        {groups.length === 0 && <p className="mt-2 text-xs text-muted">No estás en ningún grupo; podés sumar invitados.</p>}
+        {groups.length === 0 && <p className="mt-2 text-xs text-muted-foreground">No estás en ningún grupo; podés sumar invitados.</p>}
       </section>
 
       <section className="space-y-2">
@@ -148,7 +149,7 @@ export function NewRoundForm({
               value={g.hcp}
               onChange={(e) => setGuests(guests.map((x, j) => (j === i ? { ...x, hcp: e.target.value } : x)))}
             />
-            <button type="button" className="text-muted" onClick={() => setGuests(guests.filter((_, j) => j !== i))}>✕</button>
+            <button type="button" className="text-muted-foreground" onClick={() => setGuests(guests.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
         <Button type="button" variant="secondary" onClick={() => setGuests([...guests, { name: "", hcp: "" }])}>+ Invitado</Button>

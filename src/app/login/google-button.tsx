@@ -21,7 +21,7 @@ export function GoogleButton({ next }: { next?: string }) {
     <button
       onClick={signIn}
       disabled={loading}
-      className="flex w-full max-w-xs items-center justify-center gap-3 rounded-full border border-border bg-surface px-5 py-3 font-medium shadow-sm active:scale-[0.98] disabled:opacity-60"
+      className="flex w-full max-w-xs items-center justify-center gap-3 rounded-full border border-border bg-card px-5 py-3 font-semibold transition-transform duration-120 active:scale-[0.97] disabled:opacity-60"
     >
       <GoogleLogo />
       {loading ? "Redirigiendo…" : "Entrar con Google"}

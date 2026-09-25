@@ -17,7 +17,7 @@ export function PlayerTabs({
           href={`/partidas/${roundId}?j=${p.id}`}
           scroll={false}
           className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${
-            p.id === selectedId ? "border-accent bg-accent text-accent-foreground" : "border-border bg-surface"
+            p.id === selectedId ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"
           }`}
         >
           {p.name}

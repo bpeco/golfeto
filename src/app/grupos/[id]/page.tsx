@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Shell } from "@/components/shell";
-import { Card, Empty, LinkButton, fmtIndex, formatDate } from "@/components/ui";
+import { Card, Empty, LinkButton } from "@/components/ui/legacy";
+import { fmtIndex, formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
 import { getHandicapsFor } from "@/lib/db/handicap";
@@ -50,7 +51,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
   return (
     <Shell title={group.name} back="/" action={<LinkButton href={`/partidas/nueva?grupo=${group.id}`}>Nueva partida</LinkButton>}>
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Miembros</h2>
+        <h2 className="text-base font-semibold">Miembros</h2>
         <Card className="divide-y divide-border p-0">
           {ranking.map((m) => {
             const h = handicaps.get(m.player!.id);
@@ -60,7 +61,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
                   <Link href={`/golfistas/${m.player!.id}`} className="font-medium">
                     {m.player!.display_name}
                   </Link>
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-muted-foreground">
                     {m.role === "admin" ? "Admin · " : ""}
                     {h?.signedCount ?? 0} tarjetas
                     {h?.source === "declarado" ? " · hcp declarado" : ""}
@@ -75,7 +76,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       </section>
 
       <section className="mt-6 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Comparación</h2>
+        <h2 className="text-base font-semibold">Comparación</h2>
         <IndexChart
           title="Evolución del Hándicap Index"
           series={[...stats]
@@ -88,7 +89,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
         />
         <Card className="overflow-x-auto p-0">
           <table className="w-full text-sm">
-            <thead className="text-xs text-muted">
+            <thead className="text-xs text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 text-left">Golfista</th>
                 <th className="px-2 py-2 text-right">Hcp</th>
@@ -108,7 +109,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
                     <td className="px-2 py-2 text-right tabular-nums">{st.avgGross ?? "—"}</td>
                     <td className="px-2 py-2 text-right tabular-nums">{st.last5AvgGross ?? "—"}</td>
                     <td className="px-2 py-2 text-right tabular-nums">{st.bestGross ?? "—"}</td>
-                    <td className="px-2 py-2 text-right tabular-nums text-muted">{st.cards.length}</td>
+                    <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{st.cards.length}</td>
                   </tr>
                 ))}
             </tbody>
@@ -117,14 +118,14 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       </section>
 
       <section className="mt-6 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Invitar</h2>
+        <h2 className="text-base font-semibold">Invitar</h2>
         <Card>
           <InvitePanel groupId={group.id} groupName={group.name} code={group.invite_code} isAdmin={!!isAdmin} />
         </Card>
       </section>
 
       <section className="mt-6 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Últimas partidas</h2>
+        <h2 className="text-base font-semibold">Últimas partidas</h2>
         {groupRounds.length === 0 ? (
           <Empty>Todavía no hay partidas. Creá la primera.</Empty>
         ) : (
@@ -133,12 +134,12 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
               <Link key={r.id} href={`/partidas/${r.id}`} className="block px-4 py-3">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{r.course_version.course.name}</span>
-                  <span className="text-xs text-muted">
+                  <span className="text-xs text-muted-foreground">
                     {r.date_approximate ? "~" : ""}
                     {formatDate(r.played_on)}
                   </span>
                 </div>
-                <p className="text-xs text-muted">
+                <p className="text-xs text-muted-foreground">
                   {r.scorecards
                     .filter((s) => playerIds.includes(s.player_id))
                     .map((s) => {

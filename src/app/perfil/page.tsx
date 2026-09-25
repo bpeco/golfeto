@@ -1,5 +1,7 @@
 import { Shell } from "@/components/shell";
-import { Button, Card, ErrorBanner, Field, fmtIndex, inputClass } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Card, ErrorBanner, Field, inputClass } from "@/components/ui/legacy";
+import { fmtIndex } from "@/lib/format";
 import { requirePlayer } from "@/lib/db/player";
 import { getPlayerHandicap } from "@/lib/db/handicap";
 import { saveDeclaredHandicap, updateDisplayName } from "./actions";
@@ -17,18 +19,18 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   return (
     <Shell title="Perfil">
       <ErrorBanner message={error} />
-      {ok && <p className="rounded-xl bg-accent/10 px-3 py-2 text-sm">Guardado.</p>}
+      {ok && <p className="rounded-xl bg-primary/10 px-3 py-2 text-sm">Guardado.</p>}
 
       <Card className="mt-3 grid grid-cols-2 gap-3 text-center">
         <div>
-          <p className="text-xs text-muted">Calculado por Galf</p>
+          <p className="text-xs text-muted-foreground">Calculado por Galf</p>
           <p className="text-3xl font-black tabular-nums">{fmtIndex(h.computed)}</p>
-          <p className="text-xs text-muted">{h.signedCount} tarjetas firmadas{h.signedCount < 3 ? " (mín. 3)" : ""}</p>
+          <p className="text-xs text-muted-foreground">{h.signedCount} tarjetas firmadas{h.signedCount < 3 ? " (mín. 3)" : ""}</p>
         </div>
         <div>
-          <p className="text-xs text-muted">Declarado (AAG)</p>
+          <p className="text-xs text-muted-foreground">Declarado (AAG)</p>
           <p className="text-3xl font-black tabular-nums">{fmtIndex(h.declared)}</p>
-          <p className="text-xs text-muted">{h.source === "declarado" ? "en uso" : h.declared != null ? "referencia" : ""}</p>
+          <p className="text-xs text-muted-foreground">{h.source === "declarado" ? "en uso" : h.declared != null ? "referencia" : ""}</p>
         </div>
       </Card>
 
@@ -49,7 +51,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       </form>
 
       <form action="/auth/signout" method="post" className="mt-10">
-        <Button type="submit" variant="danger" className="w-full">Cerrar sesión</Button>
+        <Button type="submit" variant="destructive-outline" className="w-full">Cerrar sesión</Button>
       </form>
     </Shell>
   );

@@ -2,7 +2,8 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button, ErrorBanner } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { ErrorBanner } from "@/components/ui/legacy";
 import { resizeImage } from "@/lib/image-resize";
 import { applyExtraction, uploadAndExtract, type ExtractionResult } from "./photo-actions";
 
@@ -84,17 +85,17 @@ export function PhotoPanel({
       </div>
 
       {result && (
-        <div className="space-y-3 rounded-2xl border border-accent/40 bg-surface p-3">
+        <div className="space-y-3 rounded-lg border border-primary/40 bg-card p-3">
           <p className="text-sm font-semibold">Leí {result.extraction.rows.length} fila{result.extraction.rows.length === 1 ? "" : "s"}. Revisá y confirmá:</p>
-          {result.extraction.notes && <p className="text-xs text-muted">{result.extraction.notes}</p>}
+          {result.extraction.notes && <p className="text-xs text-muted-foreground">{result.extraction.notes}</p>}
           {result.extraction.rows.map((row, i) => (
             <div key={i} className="space-y-2 rounded-xl border border-border p-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm">
-                  “{row.name}” <span className="text-muted">→</span>
+                  “{row.name}” <span className="text-muted-foreground">→</span>
                 </span>
                 <select
-                  className="flex-1 rounded-lg border border-border bg-surface px-2 py-1 text-sm"
+                  className="flex-1 rounded-lg border border-border bg-card px-2 py-1 text-sm"
                   value={assign[i] ?? ""}
                   onChange={(e) => setAssign(assign.map((a, j) => (j === i ? e.target.value || null : a)))}
                 >
@@ -113,7 +114,7 @@ export function PhotoPanel({
                     inputMode="numeric"
                     aria-label={`Hoyo ${k + 1}`}
                     className={`h-8 rounded-md border text-center text-sm ${
-                      row.uncertain.includes(k) ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30" : "border-border bg-background"
+                      row.uncertain.includes(k) ? "border-dashed border-warn-ink bg-warn/15" : "border-border bg-background"
                     }`}
                     value={v ?? ""}
                     onChange={(e) => {
@@ -123,7 +124,7 @@ export function PhotoPanel({
                   />
                 ))}
               </div>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-muted-foreground">
                 Suma {rows[i].reduce((acc: number, v) => acc + (v ?? 0), 0)}
                 {row.writtenTotal != null ? ` · en la tarjeta dice ${row.writtenTotal}` : ""}
                 {row.uncertain.length ? ` · ${row.uncertain.length} dudosos en amarillo` : ""}
@@ -136,7 +137,7 @@ export function PhotoPanel({
             </Button>
             <Button variant="secondary" onClick={() => setResult(null)}>Descartar</Button>
           </div>
-          <p className="text-xs text-muted">Los golpes se cargan como borrador; cada uno firma la suya.</p>
+          <p className="text-xs text-muted-foreground">Los golpes se cargan como borrador; cada uno firma la suya.</p>
         </div>
       )}
     </section>

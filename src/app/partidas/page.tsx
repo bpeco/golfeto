@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Shell } from "@/components/shell";
-import { Card, Empty, LinkButton, formatDate } from "@/components/ui";
+import { Card, Empty, LinkButton } from "@/components/ui/legacy";
+import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
 
@@ -28,12 +29,12 @@ export default async function RoundsPage() {
               <Link key={r.id} href={`/partidas/${r.id}`} className="block px-4 py-3">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{r.course_version.course.name}</span>
-                  <span className="text-xs text-muted">
+                  <span className="text-xs text-muted-foreground">
                     {r.date_approximate ? "~" : ""}
                     {formatDate(r.played_on)}
                   </span>
                 </div>
-                <p className="mt-0.5 text-xs text-muted">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {r.scorecards
                     .map((s) => `${s.player?.display_name ?? "?"}${s.signature?.gross != null ? ` ${s.signature.gross}` : ""}`)
                     .join(" · ")}
