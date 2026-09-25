@@ -70,7 +70,9 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
       {selected && (
         <div className="mt-3">
           <ScoreGrid
-            key={selected.card.id}
+            // La grilla copia los golpes a su estado local: si cambian en el servidor (p. ej. al aplicar la foto),
+            // la key cambia y se vuelve a montar con los datos nuevos.
+            key={`${selected.card.id}:${scoresKey(selected.card.scores)}`}
             round={round}
             card={selected.card}
             isOwner={selected.card.playerId === me.id}
@@ -80,4 +82,11 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
       )}
     </Shell>
   );
+}
+
+/** Huella de los golpes guardados: cambia cuando cambia cualquier hoyo. */
+function scoresKey(scores: Record<number, { strokes: number | null; pickedUp: boolean }>) {
+  return Object.entries(scores)
+    .map(([position, s]) => `${position}=${s.pickedUp ? "x" : (s.strokes ?? "")}`)
+    .join(",");
 }
