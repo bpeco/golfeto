@@ -2,10 +2,8 @@
 
 import { useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import * as m from "motion/react-m";
-import { useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { ScoreMark } from "@/components/ui/score-mark";
 import { Stepper } from "@/components/ui/stepper";
@@ -49,7 +47,6 @@ export function FocusMode({
   onScore: (position: number, score: HoleScore) => void;
   onUnsigned: () => void;
 }) {
-  const reduced = useReducedMotion();
   const touch = useRef<{ x: number; y: number } | null>(null);
   const { hole } = positions[position - 1];
   const s = scores[position];
@@ -97,13 +94,7 @@ export function FocusMode({
           if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) onGo(position + (dx < 0 ? 1 : -1));
         }}
       >
-        <m.div
-          key={`${card.id}-${position}`}
-          initial={reduced ? false : { x: direction * 28, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
-          className="mt-4"
-        >
+        <div key={`${card.id}-${position}`} className={cn("mt-4", direction === 1 ? "hole-in-next" : "hole-in-prev")}>
           {card.isLegacy ? (
             <LockedHole title="Tarjeta histórica" body={`Total ${card.legacyGross ?? "—"} golpes, sin detalle por hoyo.`} />
           ) : locked ? (
@@ -135,7 +126,7 @@ export function FocusMode({
               </div>
             </>
           )}
-        </m.div>
+        </div>
       </div>
 
       <HoleStrip positions={positions} scores={scores} current={position} onPick={onGo} label={`Hoyos de ${card.playerName}`} />

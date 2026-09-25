@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { FLASH_COOKIE, parseFlash } from "@/lib/flash-shared";
 
 /** Muestra (una sola vez) el mensaje que dejó una server action antes de redirigir. */

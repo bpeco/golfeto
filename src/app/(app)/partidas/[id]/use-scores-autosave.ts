@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { SaveState } from "@/components/ui/save-status";
 import { fail, friendlyDbError, type ActionResult } from "@/lib/action-result";
 import type { HoleScore } from "@/lib/scorecard-totals";

@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { LazyMotion, domAnimation } from "motion/react";
 import { FlashToaster } from "@/components/flash-toaster";
 import { HapticsIOS } from "@/components/haptics-ios";
 import { LaunchMarker } from "@/components/launch-marker";
@@ -10,20 +9,21 @@ import { NavTracker } from "@/components/ui/back-button";
 import { Toaster } from "@/components/ui/sonner";
 import { ConfirmProvider } from "@/components/ui/use-confirm";
 
-/** Proveedores del cliente: tema → motion liviano (solo m.*) → confirmaciones → toasts. */
+/**
+ * Proveedores del cliente: tema → confirmaciones → toasts. Las animaciones son CSS
+ * (globals.css), así que no hay proveedor de motion.
+ */
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <LazyMotion features={domAnimation} strict>
-        <ConfirmProvider>
-          <NavTracker />
-          {children}
-          <Toaster />
-          <FlashToaster />
-          <HapticsIOS />
-          <LaunchMarker />
-        </ConfirmProvider>
-      </LazyMotion>
+      <ConfirmProvider>
+        <NavTracker />
+        {children}
+        <Toaster />
+        <FlashToaster />
+        <HapticsIOS />
+        <LaunchMarker />
+      </ConfirmProvider>
     </ThemeProvider>
   );
 }

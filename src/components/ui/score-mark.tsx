@@ -1,7 +1,3 @@
-"use client";
-
-import * as m from "motion/react-m";
-import { useReducedMotion } from "motion/react";
 import { notationFor, notationLabel, type NotationShape } from "@/lib/score-notation";
 import { cn } from "@/lib/utils";
 
@@ -43,8 +39,6 @@ export function ScoreMark({
 }) {
   const n = notationFor(strokes, par, pickedUp);
   const s = SIZES[size];
-  const reduced = useReducedMotion();
-  const draw = animate && !reduced;
   return (
     <span
       role="img"
@@ -53,7 +47,7 @@ export function ScoreMark({
       className={cn("relative inline-flex shrink-0 items-center justify-center", s.box, TONE[n.tone], className)}
     >
       <svg viewBox="0 0 40 40" aria-hidden className="absolute inset-0 size-full overflow-visible" fill="none" stroke="currentColor">
-        <Shape shape={n.shape} strokeWidth={s.stroke} draw={draw} drawKey={`${strokes}-${pickedUp}`} />
+        <Shape shape={n.shape} strokeWidth={s.stroke} draw={animate} drawKey={`${strokes}-${pickedUp}`} />
       </svg>
       {n.tone !== "picked-up" && (
         <span aria-hidden className={cn("relative font-display leading-none font-bold tabular-nums", s.text)}>
@@ -65,31 +59,30 @@ export function ScoreMark({
 }
 
 function Shape({ shape, strokeWidth, draw, drawKey }: { shape: NotationShape; strokeWidth: number; draw: boolean; drawKey: string }) {
-  const common = { strokeWidth };
-  const anim = draw
-    ? { initial: { pathLength: 0 }, animate: { pathLength: 1 }, transition: { duration: 0.25, ease: [0.2, 0, 0, 1] as const } }
-    : {};
+  // Dibujo en CSS (.score-draw en globals.css): pathLength 1 y stroke-dashoffset de 1 a 0.
+  // La key reinicia la animación cuando cambia el número.
+  const common = { strokeWidth, ...(draw ? { pathLength: 1, className: "score-draw" } : {}) };
   switch (shape) {
     case "circle":
-      return <m.circle key={drawKey} cx={20} cy={20} r={17} {...common} {...anim} />;
+      return <circle key={drawKey} cx={20} cy={20} r={17} {...common} />;
     case "double-circle":
       return (
         <g key={drawKey}>
-          <m.circle cx={20} cy={20} r={14.5} {...common} {...anim} />
-          <m.circle cx={20} cy={20} r={18.5} {...common} {...anim} />
+          <circle cx={20} cy={20} r={14.5} {...common} />
+          <circle cx={20} cy={20} r={18.5} {...common} />
         </g>
       );
     case "square":
-      return <m.rect key={drawKey} x={3.5} y={3.5} width={33} height={33} rx={1.5} {...common} {...anim} />;
+      return <rect key={drawKey} x={3.5} y={3.5} width={33} height={33} rx={1.5} {...common} />;
     case "double-square":
       return (
         <g key={drawKey}>
-          <m.rect x={6} y={6} width={28} height={28} rx={1} {...common} {...anim} />
-          <m.rect x={2} y={2} width={36} height={36} rx={1.5} {...common} {...anim} />
+          <rect x={6} y={6} width={28} height={28} rx={1} {...common} />
+          <rect x={2} y={2} width={36} height={36} rx={1.5} {...common} />
         </g>
       );
     case "slash":
-      return <m.line key={drawKey} x1={12} y1={32} x2={28} y2={8} {...common} strokeWidth={strokeWidth * 1.6} strokeLinecap="round" {...anim} />;
+      return <line key={drawKey} x1={12} y1={32} x2={28} y2={8} {...common} strokeWidth={strokeWidth * 1.6} strokeLinecap="round" />;
     default:
       return null;
   }

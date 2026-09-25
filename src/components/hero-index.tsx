@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BoardNumber } from "@/components/ui/board-number";
+import { AnimatedBoardNumber } from "@/components/ui/animated-board-number";
 import { alreadyLaunched } from "@/components/launch-marker";
 
 /**
@@ -17,5 +17,5 @@ export function HeroIndex({ value, previous }: { value: number | null; previous:
     const t = setTimeout(() => setShown(value), 350);
     return () => clearTimeout(t);
   }, [value, previous]);
-  return <BoardNumber value={shown} kind="index" size="xl" animate />;
+  return <AnimatedBoardNumber value={shown} kind="index" size="xl" />;
 }

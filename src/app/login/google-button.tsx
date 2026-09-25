@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+
+// El cliente de Supabase (auth) pesa: se baja al apoyar el dedo en el botón, no con la página.
+const loadClient = () => import("@/lib/supabase/client");
 
 export function GoogleButton({ next }: { next?: string }) {
   const [loading, setLoading] = useState(false);
@@ -12,6 +14,7 @@ export function GoogleButton({ next }: { next?: string }) {
     setLoading(true);
     setError(false);
     try {
+      const { createClient } = await loadClient();
       const supabase = createClient();
       const callback = new URL("/auth/callback", window.location.origin);
       if (next) callback.searchParams.set("next", next);
@@ -25,7 +28,7 @@ export function GoogleButton({ next }: { next?: string }) {
 
   return (
     <div className="grid w-full gap-2">
-      <Button variant="secondary" size="lg" className="w-full" pending={loading} pendingLabel="Redirigiendo…" onClick={signIn}>
+      <Button variant="secondary" size="lg" className="w-full" pending={loading} pendingLabel="Redirigiendo…" onPointerDown={() => void loadClient()} onFocus={() => void loadClient()} onClick={signIn}>
         <GoogleLogo />
         Entrar con Google
       </Button>

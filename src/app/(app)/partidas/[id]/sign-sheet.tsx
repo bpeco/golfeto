@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { BoardNumber } from "@/components/ui/board-number";
+import { AnimatedBoardNumber } from "@/components/ui/animated-board-number";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -151,7 +151,7 @@ function SignedPanel({ summary, onDone }: { summary: SignSummary; onDone: () => 
       {hasIndex && (
         <div className="rounded-xl bg-board p-4 text-board-foreground">
           <p className="text-sm text-board-muted">Hándicap Index</p>
-          <BoardNumber value={shown} kind="index" size="xl" animate />
+          <AnimatedBoardNumber value={shown} kind="index" size="xl" />
         </div>
       )}
       <dl className="mt-4 grid grid-cols-3 text-center">

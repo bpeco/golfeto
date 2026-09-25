@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Camera, ChevronLeft, ChevronRight, Copy, DoorOpen, Ellipsis, Flag, Share2, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Board, BoardLabel } from "@/components/ui/board";
+import { AnimatedBoardNumber } from "@/components/ui/animated-board-number";
 import { BoardNumber } from "@/components/ui/board-number";
 import { BottomNav } from "@/components/ui/bottom-nav";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ import { Segmented } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { useConfirm } from "@/components/ui/use-confirm";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { estimateSignature } from "@/lib/sign-estimate";
 import { SignSheet } from "@/app/(app)/partidas/[id]/sign-sheet";
 import { archivo, bigShoulders, publicSans } from "./fonts";
@@ -503,7 +505,7 @@ function BoardDemo() {
     <div className="space-y-4">
       <Board>
         <BoardLabel>Hándicap Index</BoardLabel>
-        <BoardNumber value={v} kind="index" size="xl" animate />
+        <AnimatedBoardNumber value={v} kind="index" size="xl" />
         <BoardLabel className="mt-2">12 tarjetas firmadas</BoardLabel>
       </Board>
       <div className="flex gap-2">
@@ -682,6 +684,14 @@ function Overlays() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <ActionMenu
+        label="Más acciones (hoja)"
+        actions={[
+          { label: "Copiar link", icon: <Copy />, onSelect: () => toast.success("Link copiado") },
+          { label: "Compartir", icon: <Share2 />, onSelect: () => toast("Compartir") },
+          { label: "Salir del grupo", icon: <DoorOpen />, onSelect: () => toast("Salir"), destructive: true },
+        ]}
+      />
       <Button variant="secondary" onClick={() => toast.success("Firmada", { description: "Tu Hándicap Index pasa de 21,3 a 20,8" })}>
         Toast éxito
       </Button>

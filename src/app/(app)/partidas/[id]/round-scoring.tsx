@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { RoundHole, RoundScorecard } from "@/lib/round-model";
 import type { RatingForSign } from "@/lib/sign-estimate";
@@ -13,7 +14,6 @@ import { FullCard } from "./full-card";
 import { PhotoFlow } from "./photo-flow";
 import { PlayerSwitcher } from "./player-switcher";
 import { ScoreBar } from "./score-bar";
-import { SignSheet } from "./sign-sheet";
 import { useScoresAutosave, type CardScores } from "./use-scores-autosave";
 
 export type ScoringCard = Pick<
@@ -26,6 +26,10 @@ export type ScoringCard = Pick<
   ownerIndex: number | null;
   isOwner: boolean;
 };
+
+// La hoja de firma se baja aparte del JS de la partida.
+const loadSignSheet = () => import("./sign-sheet").then((mod) => mod.SignSheet);
+const SignSheet = dynamic(loadSignSheet, { ssr: false });
 
 export type Position = { position: number; hole: RoundHole };
 
@@ -62,6 +66,7 @@ export function RoundScoring({
   const [position, setPosition] = useState(() => initialPosition(positions, serverScores[initialCardId ?? ""] ?? {}));
   const [direction, setDirection] = useState<1 | -1>(1);
   const [signOpen, setSignOpen] = useState(false);
+  const [signMounted, setSignMounted] = useState(false);
 
   const { scores, update, status, dirtyCards, retry, syncFromServer } = useScoresAutosave({
     initial: serverScores,
@@ -74,6 +79,12 @@ export function RoundScoring({
   useEffect(() => {
     syncFromServer(serverScores);
   }, [serverScores, syncFromServer]);
+
+  // Si hay una tarjeta propia sin firmar, la hoja de firma se precarga después de hidratar.
+  const mayNeedSign = !!rating && cards.some((c) => c.isOwner && !c.signedAt && !c.isLegacy);
+  useEffect(() => {
+    if (mayNeedSign) void loadSignSheet();
+  }, [mayNeedSign]);
 
   const card = cards.find((c) => c.id === cardId) ?? cards[0];
   if (!card) return null;
@@ -160,11 +171,14 @@ export function RoundScoring({
         mode={mode}
         onToggleMode={() => setMode(mode === "hoyo" ? "tarjeta" : "hoyo")}
         signState={card.isOwner && !locked ? (blocker ? { disabled: true, reason: blocker.reason === "saving" ? undefined : blocker.message } : { disabled: false }) : null}
-        onSign={() => setSignOpen(true)}
+        onSign={() => {
+          setSignMounted(true);
+          setSignOpen(true);
+        }}
         noRatingHref={blocker?.reason === "no-rating" ? `/canchas/${courseId}/editar` : undefined}
       />
 
-      {card.isOwner && !locked && rating && (
+      {signMounted && card.isOwner && !locked && rating && (
         <SignSheet
           open={signOpen}
           onOpenChange={setSignOpen}

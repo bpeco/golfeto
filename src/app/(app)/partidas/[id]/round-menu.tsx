@@ -1,10 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { Ellipsis, Trash } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Trash } from "lucide-react";
+import { toast } from "@/lib/toast";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { useConfirm } from "@/components/ui/use-confirm";
 import { deleteRound } from "../actions";
 
@@ -12,7 +11,6 @@ import { deleteRound } from "../actions";
 export function RoundMenu({ roundId, canDelete }: { roundId: string; canDelete: boolean }) {
   const [pending, start] = useTransition();
   const confirm = useConfirm();
-  if (!canDelete) return null;
 
   async function remove() {
     const res = await confirm({
@@ -29,15 +27,10 @@ export function RoundMenu({ roundId, canDelete }: { roundId: string; canDelete: 
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="Más acciones de la partida" pending={pending} />}>
-        <Ellipsis />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem variant="destructive" onClick={remove}>
-          <Trash /> Dar de baja
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <ActionMenu
+      label="Más acciones de la partida"
+      pending={pending}
+      actions={canDelete ? [{ label: "Dar de baja la partida", icon: <Trash />, onSelect: remove, destructive: true }] : []}
+    />
   );
 }

@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Ban, Copy, DoorOpen, Ellipsis, RefreshCw, Share2, UserRoundMinus } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Initials } from "@/components/ui/initials";
-import { List, ListRow } from "@/components/ui/list";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import dynamic from "next/dynamic";
+import { Ban, Copy, DoorOpen, RefreshCw, Share2, UserRoundMinus } from "lucide-react";
+import { toast } from "@/lib/toast";
+import { ActionMenu, type Action } from "@/components/ui/action-menu";
 import { useConfirm } from "@/components/ui/use-confirm";
 import { leaveGroup, regenerateInviteCode, removeMember, revokeInviteCode } from "../actions";
 import { useInviteLink } from "./use-invite-link";
+
+const MembersSheet = dynamic(() => import("./members-sheet"), { ssr: false });
 
 export type GroupMember = { memberId: string; playerId: string; name: string; role: "admin" | "member" };
 
@@ -33,6 +32,8 @@ export function GroupMenu({
   const confirm = useConfirm();
   const [pending, start] = useTransition();
   const [membersOpen, setMembersOpen] = useState(false);
+  // Montada desde la primera apertura, para que al cerrar se vea la animación de salida.
+  const [membersMounted, setMembersMounted] = useState(false);
   const { copy, share } = useInviteLink(groupName, code);
 
   function regenerate() {
@@ -72,6 +73,11 @@ export function GroupMenu({
     });
   }
 
+  function openMembers() {
+    setMembersMounted(true);
+    setMembersOpen(true);
+  }
+
   async function remove(member: GroupMember) {
     const res = await confirm({
       title: `¿Sacar a ${member.name} del grupo?`,
@@ -87,73 +93,28 @@ export function GroupMenu({
     });
   }
 
+  const actions: Action[] = [
+    ...(code
+      ? [
+          { label: "Compartir link", icon: <Share2 />, onSelect: share },
+          { label: "Copiar link", icon: <Copy />, onSelect: copy },
+        ]
+      : []),
+    ...(isAdmin
+      ? [
+          { label: code ? "Generar otro link" : "Generar link", icon: <RefreshCw />, onSelect: regenerate },
+          ...(code ? [{ label: "Revocar link", icon: <Ban />, onSelect: revoke }] : []),
+          { label: "Administrar miembros", icon: <UserRoundMinus />, onSelect: openMembers },
+        ]
+      : []),
+    { label: "Salir del grupo", icon: <DoorOpen />, onSelect: leave, destructive: true },
+  ];
+
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="Más acciones del grupo" pending={pending} />}>
-          <Ellipsis />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          {code && (
-            <>
-              <DropdownMenuItem onClick={share}>
-                <Share2 /> Compartir link
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={copy}>
-                <Copy /> Copiar link
-              </DropdownMenuItem>
-            </>
-          )}
-          {isAdmin && (
-            <>
-              <DropdownMenuItem onClick={regenerate}>
-                <RefreshCw /> {code ? "Generar otro link" : "Generar link"}
-              </DropdownMenuItem>
-              {code && (
-                <DropdownMenuItem onClick={revoke}>
-                  <Ban /> Revocar link
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={() => setMembersOpen(true)}>
-                <UserRoundMinus /> Administrar miembros
-              </DropdownMenuItem>
-            </>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={leave}>
-            <DoorOpen /> Salir del grupo
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {isAdmin && (
-        <Sheet open={membersOpen} onOpenChange={setMembersOpen}>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Miembros</SheetTitle>
-              <SheetDescription>Sacar a alguien no borra sus tarjetas.</SheetDescription>
-            </SheetHeader>
-            <List>
-              {members.map((mb) => (
-                <ListRow
-                  key={mb.memberId}
-                  leading={<Initials name={mb.name} />}
-                  title={mb.name}
-                  meta={mb.role === "admin" ? "Administra el grupo" : undefined}
-                  trailing={
-                    mb.playerId !== meId ? (
-                      <Button variant="ghost" size="sm" className="text-destructive" disabled={pending} onClick={() => remove(mb)}>
-                        Sacar
-                      </Button>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Vos</span>
-                    )
-                  }
-                />
-              ))}
-            </List>
-          </SheetContent>
-        </Sheet>
+      <ActionMenu label="Más acciones del grupo" actions={actions} pending={pending} />
+      {isAdmin && membersMounted && (
+        <MembersSheet open={membersOpen} onOpenChange={setMembersOpen} members={members} meId={meId} pending={pending} onRemove={remove} />
       )}
     </>
   );

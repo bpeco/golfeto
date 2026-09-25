@@ -341,6 +341,32 @@ html[data-launched] .reveal-stagger > * {
   animation: none;
 }
 
+/* Hoyo a hoyo: el hoyo nuevo entra desde el lado hacia el que se va (240 ms, 28 px). */
+@keyframes hole-in-next {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+@keyframes hole-in-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+.hole-in-next {
+  animation: hole-in-next 240ms var(--ease-out) both;
+}
+.hole-in-prev {
+  animation: hole-in-prev 240ms var(--ease-out) both;
+}
+
+/* La marca de la tarjeta (círculo, cuadrado…) se dibuja al anotar (250 ms). Usa pathLength="1". */
+.score-draw {
+  stroke-dasharray: 1 1;
+  animation: reveal-ring 250ms var(--ease-out) both;
+}
+
 /* Movimiento: el sistema operativo manda. Sin transiciones de ruta ni animaciones decorativas. */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),
@@ -352,7 +378,10 @@ html[data-launched] .reveal-stagger > * {
   .reveal-rule,
   .reveal-ring path,
   .reveal-rise,
-  .reveal-stagger > * {
+  .reveal-stagger > *,
+  .hole-in-next,
+  .hole-in-prev,
+  .score-draw {
     animation: none;
   }
 }
