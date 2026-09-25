@@ -1,29 +1,15 @@
 import { ImageResponse } from "next/og";
+import { BrandArt } from "@/components/brand-art";
+import { BRAND_FONT, brandFont } from "@/lib/brand-font";
+import { THEME_HEX } from "@/lib/theme-colors";
 
 export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
 
-export default function Icon() {
+/** Favicon / ícono genérico: la G con el círculo de birdie sobre verde de pizarra. */
+export default async function Icon() {
   return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#1f7a4d",
-          color: "#ffffff",
-          fontSize: 300,
-          fontWeight: 900,
-          fontFamily: "sans-serif",
-          borderRadius: 96,
-        }}
-      >
-        G
-      </div>
-    ),
-    size,
+    <BrandArt width={512} height={512} mark={420} background={THEME_HEX.board} glyph={THEME_HEX.papel} ring={THEME_HEX.rojoClaro} fontFamily={BRAND_FONT} />,
+    { ...size, fonts: await brandFont() },
   );
 }

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { LazyMotion, domAnimation } from "motion/react";
 import { FlashToaster } from "@/components/flash-toaster";
 import { HapticsIOS } from "@/components/haptics-ios";
+import { LaunchMarker } from "@/components/launch-marker";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NavTracker } from "@/components/ui/back-button";
 import { Toaster } from "@/components/ui/sonner";
@@ -20,6 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <Toaster />
           <FlashToaster />
           <HapticsIOS />
+          <LaunchMarker />
         </ConfirmProvider>
       </LazyMotion>
     </ThemeProvider>

@@ -281,6 +281,66 @@
   }
 }
 
+
+/*
+ * La única secuencia orquestada: el login (≤ 1,1 s). En CSS para que corra desde el primer
+ * pintado, sin esperar el JS. --d es el retardo de cada pieza.
+ */
+@keyframes reveal-rule {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes reveal-ring {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.reveal-rule {
+  transform-origin: left center;
+  animation: reveal-rule 260ms var(--ease-out) var(--d, 0ms) both;
+}
+.reveal-ring path {
+  stroke-dasharray: 1 1;
+  animation: reveal-ring 500ms var(--ease-in-out) 250ms both;
+}
+.reveal-rise {
+  animation: reveal-rise 260ms var(--ease-out) var(--d, 0ms) both;
+}
+
+/*
+ * Primer Inicio de cada lanzamiento: las secciones suben en cascada (60 ms, 240 ms, 8 px).
+ * Corre en la carga completa de la página; después LaunchMarker pone data-launched en <html>
+ * y las navegaciones siguientes no animan.
+ */
+.reveal-stagger > * {
+  animation: reveal-rise 240ms var(--ease-out) both;
+}
+.reveal-stagger > :nth-child(2) {
+  animation-delay: 60ms;
+}
+.reveal-stagger > :nth-child(3) {
+  animation-delay: 120ms;
+}
+.reveal-stagger > :nth-child(4) {
+  animation-delay: 180ms;
+}
+.reveal-stagger > :nth-child(n + 5) {
+  animation-delay: 240ms;
+}
+html[data-launched] .reveal-stagger > * {
+  animation: none;
+}
+
 /* Movimiento: el sistema operativo manda. Sin transiciones de ruta ni animaciones decorativas. */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),
@@ -288,5 +348,11 @@
   ::view-transition-group(*) {
     animation-duration: 0s !important;
     animation-delay: 0s !important;
+  }
+  .reveal-rule,
+  .reveal-ring path,
+  .reveal-rise,
+  .reveal-stagger > * {
+    animation: none;
   }
 }
