@@ -16,6 +16,7 @@ Lo que una sesión nueva necesita saber para tocar el proyecto sin romper nada. 
 | Repo | `bpeco/golfeto` (GitHub) |
 | Rama de producción hoy | `claude/vigilant-bardeen-6iwzid` (default del repo). Pendiente: mover a `main` |
 | Rama de trabajo de la sesión 2 | `claude/awesome-lovelace-6ooihh` (ya fusionada por fast-forward en producción) |
+| Rama del rediseño (sesión 3) | `claude/sleepy-wozniak-v86mqg` (fusionada por fast-forward en producción el 2026-09-25; versión anterior: `1924828`, deploy `dpl_5JZsaVjb4EYJrHjmbnoWerZbax3b`) |
 | Vercel | proyecto `golfeto` (`prj_r4pOTc4yzgWUJlUxhs0tt9ZgRf5K`), team `bautistapeco97-gmailcoms-projects`, framework Next.js, Node 22, Deployment Protection **desactivada** (la app tiene su propio login) |
 | Producción | https://golfeto.vercel.app |
 | Supabase | proyecto `ktklvnwprfxlcncrjdjj` (São Paulo). Conector MCP "Supabase Galf" apunta ahí |
