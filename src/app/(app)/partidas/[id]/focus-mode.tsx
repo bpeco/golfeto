@@ -219,7 +219,9 @@ function HoleStrip({
   label: string;
 }) {
   return (
-    <div role="group" aria-label={label} className="mt-6 grid grid-cols-9 border-t border-l border-border">
+    // De borde a borde (-mx-4): con 9 columnas es la única forma de acercarse a los 44 px de ancho
+    // por hoyo en un teléfono de 390 px (43 px; 48 px en los de 430).
+    <div role="group" aria-label={label} className="-mx-4 mt-6 grid grid-cols-9 border-t border-border">
       {positions.map(({ position, hole }) => {
         const s = scores[position];
         const active = position === current;
@@ -231,9 +233,10 @@ function HoleStrip({
             aria-current={active ? "step" : undefined}
             aria-label={`Hoyo ${hole.number}, ${notationLabel(s?.strokes, hole.par, s?.pickedUp).toLowerCase()}`}
             className={cn(
-              "relative flex h-15 flex-col items-center justify-center gap-0.5 border-r border-b border-border leading-none outline-none",
+              "relative flex h-15 flex-col items-center justify-center gap-0.5 border-b border-border leading-none outline-none",
+              "transition-colors duration-150 active:bg-accent motion-reduce:transition-none",
               "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-              position === 9 && positions.length === 18 && "border-r-line-strong",
+              position % 9 !== 0 && "border-r",
               active ? "ring-2 ring-foreground ring-inset" : "hover:bg-accent",
             )}
           >
