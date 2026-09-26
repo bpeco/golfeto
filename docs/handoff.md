@@ -27,7 +27,7 @@ Lo que una sesión nueva necesita saber para tocar el proyecto sin romper nada. 
 
 ## Migraciones
 
-`supabase/migrations/*.sql` es la fuente de verdad. Se aplicaron con `apply_migration` del conector MCP (0001 init, 0002 security lints, 0003 claim_guest, 0004 helpers de RLS a `private`, 0005 `claimable_guests`). Para una nueva: escribir el archivo `000N_nombre.sql`, aplicarla con el conector, regenerar `src/lib/supabase/database.types.ts` (`generate_typescript_types`), correr `get_advisors` (security) y arreglar lo que marque. No hay CLI de Supabase configurada.
+`supabase/migrations/*.sql` es la fuente de verdad. Se aplicaron con `apply_migration` del conector MCP (0001 init, 0002 security lints, 0003 claim_guest, 0004 helpers de RLS a `private`, 0005 `claimable_guests`, 0006 `change_round_course`). Para una nueva: escribir el archivo `000N_nombre.sql`, aplicarla con el conector, regenerar `src/lib/supabase/database.types.ts` (`generate_typescript_types`), correr `get_advisors` (security) y arreglar lo que marque. No hay CLI de Supabase configurada.
 
 **Probar como usuario, no como service role.** El conector corre como `postgres` y saltea RLS y privilegios: 0002 dejó la app rota para todo usuario logueado (403 en grupos, partidas, tarjetas y en toda escritura auditada) y nadie lo vio hasta la Fase 2. Antes de aplicar una migración que toque permisos, correrla en una transacción que se deshace, haciéndose pasar por un golfista:
 

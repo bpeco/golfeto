@@ -6,6 +6,7 @@ import { fmtDecimal, formatDate, formatRoundDate } from "@/lib/format";
 import { requirePlayer } from "@/lib/db/player";
 import { effectiveTeeRating, getRound } from "@/lib/db/rounds";
 import { getHandicapsFor } from "@/lib/db/handicap";
+import { listCourses } from "@/lib/db/courses";
 import { courseHandicap, courseHandicap9 } from "@/lib/handicap/course";
 import { holesLabel } from "@/lib/scorecard-state";
 import { RoundMenu } from "./round-menu";
@@ -25,9 +26,12 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
   if (!round) notFound();
 
   const rating = effectiveTeeRating(round);
-  const [handicaps, photoUrls] = await Promise.all([
+  // Cambiar la cancha: lo pueden hacer los que juegan la partida y quien la creó (como editar golpes).
+  const canEdit = round.createdBy === me.id || round.scorecards.some((s) => s.playerId === me.id);
+  const [handicaps, photoUrls, courses] = await Promise.all([
     getHandicapsFor(round.scorecards.map((s) => s.playerId)),
     signedPhotoUrls(round.photos.map((p) => p.storagePath)),
+    canEdit ? listCourses(round.playedOn) : Promise.resolve(null),
   ]);
 
   const cards: ScoringCard[] = round.scorecards.map((card) => {
@@ -56,7 +60,21 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
       <PageHeader
         title={round.course.name}
         back={{ fallback: "/partidas" }}
-        action={<RoundMenu roundId={round.id} canDelete={round.createdBy === me.id} />}
+        action={
+          <RoundMenu
+            roundId={round.id}
+            canDelete={round.createdBy === me.id}
+            courseChange={
+              courses && {
+                roundId: round.id,
+                courses,
+                current: { courseId: round.course.id, teeId: round.tee.id, holesPlayed: round.holesPlayed },
+                holes: round.positions.length,
+                signedNames: round.scorecards.filter((s) => s.signedAt).map((s) => s.playerName),
+              }
+            }
+          />
+        }
         meta={
           <>
             <span>{formatRoundDate(round.playedOn, round.dateApproximate, { year: false })}</span>

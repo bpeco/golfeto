@@ -1377,6 +1377,17 @@ export type Database = {
     Functions: {
       attach_append_only: { Args: { tbl: unknown }; Returns: undefined }
       attach_audit: { Args: { tbl: unknown }; Returns: undefined }
+      change_round_course: {
+        Args: {
+          p_course_version_id: string
+          p_hole_map: Json
+          p_holes_played: Database["public"]["Enums"]["round_holes"]
+          p_loops: number
+          p_round_id: string
+          p_tee_set_id: string
+        }
+        Returns: undefined
+      }
       claim_guest: { Args: { p_guest_id: string }; Returns: undefined }
       claimable_guests: {
         Args: never

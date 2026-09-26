@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlayer } from "@/lib/db/player";
 import { getPlayerHandicap, type PlayerHandicap } from "@/lib/db/handicap";
-import { effectiveTeeRating, getRound } from "@/lib/db/rounds";
+import { effectiveTeeRating, getRound, positionsFor } from "@/lib/db/rounds";
+import { layoutForCourseChange } from "@/lib/round-model";
 import { fail, friendlyDbError, fromZod, ok, type ActionResult } from "@/lib/action-result";
 import { todayInArgentina } from "@/lib/dates";
 import { flash } from "@/lib/flash";
@@ -17,7 +18,7 @@ import {
   minimumHolesToSign,
   scoreDifferential,
 } from "@/lib/handicap/course";
-import { roundInputSchema, teeRatingSchema } from "./schema";
+import { courseChangeSchema, roundInputSchema, teeRatingSchema } from "./schema";
 
 export async function createRound(raw: unknown): Promise<ActionResult<{ roundId: string }>> {
   const parsed = roundInputSchema.safeParse(raw);
@@ -135,6 +136,59 @@ export async function setRoundTeeRating(roundId: string, raw: unknown): Promise<
   revalidatePath(`/partidas/${roundId}`);
   revalidatePath(`/canchas/${round.course.id}`);
   return ok();
+}
+
+/**
+ * Pasa la partida a otra cancha y tee (se cargó en la equivocada). Conserva cuántos hoyos se jugaron
+ * y los golpes por posición: el golpe del 5.º hoyo jugado queda en el 5.º hoyo de la cancha nueva.
+ * Solo sin tarjetas firmadas: la firma congeló el cálculo con la cancha vieja (la base también lo exige).
+ */
+export async function changeRoundCourse(roundId: string, raw: unknown): Promise<ActionResult<{ courseName: string }>> {
+  const parsed = courseChangeSchema.safeParse(raw);
+  if (!parsed.success) return fromZod(parsed.error);
+  const input = parsed.data;
+  const round = await getRound(roundId);
+  if (!round) return fail("No encontramos la partida. Puede haber sido dada de baja.");
+  const signed = round.scorecards.filter((s) => s.signedAt);
+  if (signed.length) {
+    return fail(`Hay tarjetas firmadas (${signed.map((s) => s.playerName).join(", ")}). Para cambiar la cancha, primero hay que desfirmarlas.`);
+  }
+
+  const supabase = await createClient();
+  const { data: version, error } = await supabase
+    .from("course_versions")
+    .select("id, holes_count, valid_from, valid_to, course:courses!inner(name), holes(id, number, par, stroke_index), tees:tee_sets(id)")
+    .eq("id", input.courseVersionId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) return fail(friendlyDbError(error));
+  if (!version) return fail("No encontramos esa cancha.", { courseVersionId: "Elegí otra cancha" });
+  if (version.valid_from > round.playedOn || (version.valid_to != null && version.valid_to <= round.playedOn)) {
+    return fail("Esa cancha no tenía esa versión el día de la partida.", { courseVersionId: "Elegí otra cancha" });
+  }
+  if (!version.tees.some((t) => t.id === input.teeSetId)) return fail("Elegí un tee de esa cancha.", { teeSetId: "Elegí un tee de esa cancha" });
+
+  const layout = layoutForCourseChange(version.holes_count, round.positions.length, input.nine);
+  const holes = version.holes.map((h) => ({ id: h.id, number: h.number, par: h.par, strokeIndex: h.stroke_index, meters: null }));
+  const positions = positionsFor(holes, layout.holesPlayed, layout.loops);
+  if (positions.length !== round.positions.length) {
+    return fail(`La cancha nueva tiene ${positions.length} hoyos para esta partida y se jugaron ${round.positions.length}.`);
+  }
+
+  const { error: rpcError } = await supabase.rpc("change_round_course", {
+    p_round_id: roundId,
+    p_course_version_id: version.id,
+    p_tee_set_id: input.teeSetId,
+    p_holes_played: layout.holesPlayed,
+    p_loops: layout.loops,
+    p_hole_map: positions.map((p) => ({ position: p.position, hole_id: p.hole.id })),
+  });
+  if (rpcError) return fail(friendlyDbError(rpcError));
+
+  revalidatePath(`/partidas/${roundId}`);
+  revalidatePath("/partidas");
+  revalidatePath("/");
+  return ok({ courseName: version.course.name });
 }
 
 export type SignSummary = {

@@ -103,7 +103,8 @@ triggers de auditoría (invoker) los ejecutan con el rol del que consulta. Revoc
 linter) rompe toda lectura con "permission denied for function" → 403; 0004 los movió a `private`. Las funciones
 que los llaman por nombre llevan `search_path = public, private`. RPCs: `create_group`, `join_group` (definer: el
 que entra aún no ve el grupo), `claim_guest` y `claimable_guests` (definer: el historial importado no es visible
-por RLS hasta reclamarlo), `sign_scorecard`, `unsign_scorecard` (invoker).
+por RLS hasta reclamarlo), `sign_scorecard`, `unsign_scorecard`, `change_round_course` (invoker; mueve la partida a
+otra versión y tee y cada golpe al hoyo de su misma posición, con el mapa que arma la app con `positionsFor`).
 `auth.uid()` y `current_player_id()` van envueltos en `(select ...)` para que se evalúen una vez por consulta.
 Golfistas y canchas son visibles y editables por todo `authenticated`; grupos sólo por miembros; partidas, tarjetas,
 golpes, firmas y fotos por participantes y por quien comparte grupo con algún participante (ADR-0002).

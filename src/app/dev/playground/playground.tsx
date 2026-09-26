@@ -42,8 +42,9 @@ import { ActionMenu } from "@/components/ui/action-menu";
 import { estimateSignature } from "@/lib/sign-estimate";
 import PhotoSheet from "@/app/(app)/partidas/[id]/photo-sheet";
 import { SignSheet } from "@/app/(app)/partidas/[id]/sign-sheet";
+import CourseSheet from "@/app/(app)/partidas/[id]/course-sheet";
 import { archivo, bigShoulders, publicSans } from "./fonts";
-import { ME_ID, courseDetail, courseHandicaps, groups, players, recentRounds, round } from "./fixtures";
+import { ME_ID, courseDetail, courseHandicaps, courses, groups, players, recentRounds, round } from "./fixtures";
 import { CourseFormScreen, GroupScreen, InicioVariant, NewRoundScreen, PartidaVariant } from "./variants";
 
 type Variant = "A" | "B" | "C";
@@ -611,6 +612,7 @@ function Overlays() {
   const confirm = useConfirm();
   const [signOpen, setSignOpen] = useState(false);
   const [photoStep, setPhotoStep] = useState<"idle" | "uploading" | "reading">("idle");
+  const [courseSheet, setCourseSheet] = useState<"closed" | "open" | "signed">("closed");
   const bauti = round.scorecards.find((c) => c.id === "card-bauti")!;
   const estimate = estimateSignature(round.positions, { ...bauti.scores, 13: { strokes: 5, pickedUp: false } }, { courseRating: 70.3, slope: 125, par: 71, holesInRound: 18 }, 21.3);
   return (
@@ -636,6 +638,22 @@ function Overlays() {
       <Button variant="secondary" onClick={() => setPhotoStep("reading")}>
         Foto: leyendo
       </Button>
+      <Button variant="secondary" onClick={() => setCourseSheet("open")}>
+        Cambiar cancha
+      </Button>
+      <Button variant="secondary" onClick={() => setCourseSheet("signed")}>
+        Cambiar cancha (firmada)
+      </Button>
+      <CourseSheet
+        key={courseSheet === "signed" ? "signed" : "open"}
+        open={courseSheet !== "closed"}
+        onOpenChange={(o) => !o && setCourseSheet("closed")}
+        roundId={round.id}
+        courses={courses}
+        current={{ courseId: "course-miraflores", teeId: "tee-blancas", holesPlayed: "completa" }}
+        holes={18}
+        signedNames={courseSheet === "signed" ? ["Bauti"] : []}
+      />
       <PhotoSheet
         step={photoStep === "idle" ? { kind: "idle" } : { kind: photoStep, preview: CARD_PREVIEW, photoId: "foto-1" }}
         players={[]}

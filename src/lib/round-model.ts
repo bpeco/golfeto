@@ -48,6 +48,20 @@ export function positionsFor(holes: RoundHole[], holesPlayed: HolesPlayed, loops
   return seq.map((hole, i) => ({ position: i + 1, hole }));
 }
 
+/**
+ * Cómo queda la partida al pasarla a otra cancha sin cambiar cuántos hoyos se jugaron (los golpes
+ * se conservan por posición): 18 hoyos son la completa en una de 18 o dos vueltas en una de 9;
+ * 9 hoyos son una vuelta en una de 9, o la ida (o la vuelta) en una de 18.
+ */
+export function layoutForCourseChange(
+  targetHolesCount: number,
+  positions: number,
+  nine: "ida" | "vuelta" = "ida",
+): { holesPlayed: HolesPlayed; loops: 1 | 2 } {
+  if (targetHolesCount === 9) return { holesPlayed: "completa", loops: positions === 18 ? 2 : 1 };
+  return positions === 18 ? { holesPlayed: "completa", loops: 1 } : { holesPlayed: nine, loops: 1 };
+}
+
 /** Rating y par efectivos para lo que se jugó (WHS: 9 hoyos usan rating de 9; dos vueltas duplican). */
 export function effectiveTeeRating(round: Pick<RoundDetail, "holesPlayed" | "loops" | "course" | "tee" | "holes">) {
   const cr = round.tee.courseRating;

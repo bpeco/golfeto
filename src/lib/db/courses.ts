@@ -10,10 +10,13 @@ export type CourseSummary = {
   tees: { id: string; name: string; courseRating: number | null; slope: number | null }[];
 };
 
-/** Canchas activas con su versión vigente hoy y los tees de esa versión. */
-export async function listCourses(): Promise<CourseSummary[]> {
+/**
+ * Canchas activas con su versión vigente en `on` (hoy si no se pasa) y los tees de esa versión.
+ * Una partida ya creada pide la de su fecha (ADR-0001).
+ */
+export async function listCourses(on?: string): Promise<CourseSummary[]> {
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const date = on ?? new Date().toISOString().slice(0, 10);
   const { data } = await supabase
     .from("courses")
     .select("id, name, club, city, versions:course_versions(id, holes_count, valid_from, valid_to, tees:tee_sets(id, name, course_rating, slope))")
@@ -22,7 +25,7 @@ export async function listCourses(): Promise<CourseSummary[]> {
 
   return (data ?? []).map((c) => {
     const current =
-      c.versions.find((v) => v.valid_from <= today && (v.valid_to == null || v.valid_to > today)) ??
+      c.versions.find((v) => v.valid_from <= date && (v.valid_to == null || v.valid_to > date)) ??
       c.versions.sort((a, b) => b.valid_from.localeCompare(a.valid_from))[0] ??
       null;
     return {

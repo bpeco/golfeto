@@ -20,6 +20,15 @@ export const roundInputSchema = z.object({
 
 export type RoundInput = z.input<typeof roundInputSchema>;
 
+/** Cancha y tee nuevos de una partida cargada en la equivocada. `nine`: qué nueve, si 9 hoyos pasan a una cancha de 18. */
+export const courseChangeSchema = z.object({
+  courseVersionId: uuid("Elegí una cancha"),
+  teeSetId: uuid("Elegí el tee"),
+  nine: z.enum(["ida", "vuelta"]).optional(),
+});
+
+export type CourseChangeInput = z.input<typeof courseChangeSchema>;
+
 /** CR y Slope del tee de una partida que no los tenía (para poder firmar). CR de 9 hoyos ~35. */
 export const teeRatingSchema = z.object({
   courseRating: z.number({ error: "CR entre 20 y 90" }).min(20, "CR entre 20 y 90").max(90, "CR entre 20 y 90"),
