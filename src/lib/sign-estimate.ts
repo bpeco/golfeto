@@ -38,7 +38,7 @@ export function estimateSignature(
     strokes: scores[position]?.strokes ?? null,
     pickedUp: scores[position]?.pickedUp ?? false,
   }));
-  const ags = adjustedGrossScore(results, ch, rating.holesInRound);
+  const ags = adjustedGrossScore(results, handicapIndex == null ? null : ch, rating.holesInRound);
   let differential = scoreDifferential(ags.adjustedGross, rating);
   if (rating.holesInRound === 9) differential = differentialFrom9Holes(differential, handicapIndex);
   return {

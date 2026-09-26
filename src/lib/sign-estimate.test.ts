@@ -15,6 +15,14 @@ describe("estimateSignature", () => {
     expect(e.differential).toBe(16.9); // 113/125 × (89 − 70.3) = 16,90
     expect(e.acceptable).toBe(true);
   });
+  it("sin Hándicap Index topea cada hoyo a par + 5, igual que la firma", () => {
+    // Bogey en todos salvo el 1 (par 4): 11 golpes → cuenta 9.
+    const scores = Object.fromEntries(PARS.map((p, i) => [i + 1, { strokes: i === 0 ? 11 : p + 1, pickedUp: false }]));
+    const e = estimateSignature(positions, scores, rating, null);
+    expect(e.gross).toBe(95);
+    expect(e.adjustedGross).toBe(93);
+    expect(e.differential).toBe(20.5); // 113/125 × (93 − 70.3) = 20,52
+  });
   it("con menos de 10 hoyos no alcanza", () => {
     const scores = Object.fromEntries([1, 2, 3].map((p) => [p, { strokes: 5, pickedUp: false }]));
     const e = estimateSignature(positions, scores, rating, 20);

@@ -75,19 +75,25 @@ export type AdjustedGrossResult = {
   acceptable: boolean;
 };
 
-/**
- * Score ajustado (Regla 3): cada hoyo se topea a net double bogey; un hoyo
- * levantado vale net double bogey; un hoyo no jugado vale par neto. Una tarjeta
- * de 18 necesita al menos 10 hoyos jugados (Regla 2.2); una de 9, los 9.
- */
 /** Regla 5.1b: hoyos jugados mínimos para que una tarjeta sea aceptable (10 de 18, 9 de 9). */
 export function minimumHolesToSign(holesInRound: number) {
   return holesInRound === 18 ? 10 : 9;
 }
 
+/** Regla 3.1b: hasta tener Hándicap Index, el máximo por hoyo es par + 5. */
+export function maxHoleScoreWithoutIndex(par: number): number {
+  return par + 5;
+}
+
+/**
+ * Score ajustado (Regla 3): cada hoyo se topea a net double bogey; un hoyo
+ * levantado vale net double bogey; un hoyo no jugado vale par neto. Una tarjeta
+ * de 18 necesita al menos 10 hoyos jugados (Regla 2.2); una de 9, los 9.
+ * `courseHcp` null = el golfista todavía no tiene Hándicap Index: el tope es par + 5.
+ */
 export function adjustedGrossScore(
   results: HoleResult[],
-  courseHcp: number,
+  courseHcp: number | null,
   holesInRound: 18 | 9 = 18,
 ): AdjustedGrossResult {
   let adjustedGross = 0;
@@ -95,8 +101,8 @@ export function adjustedGrossScore(
   let holesPlayed = 0;
 
   for (const r of results) {
-    const received = strokesOnHole(courseHcp, r.hole.strokeIndex, holesInRound);
-    const ndb = netDoubleBogey(r.hole.par, received);
+    const received = courseHcp == null ? 0 : strokesOnHole(courseHcp, r.hole.strokeIndex, holesInRound);
+    const ndb = courseHcp == null ? maxHoleScoreWithoutIndex(r.hole.par) : netDoubleBogey(r.hole.par, received);
     if (r.pickedUp) {
       adjustedGross += ndb;
       holesPlayed += 1;

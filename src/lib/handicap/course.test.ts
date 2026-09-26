@@ -97,6 +97,20 @@ describe("adjustedGrossScore", () => {
     expect(r.adjustedGross).toBe(12 * 5 + 6 * 5); // par 4 + 1 recibido
     expect(r.acceptable).toBe(true);
   });
+  it("sin Hándicap Index topea cada hoyo a par + 5 (Regla 3.1b)", () => {
+    const holes = eighteenPar4s();
+    const results = holes.map((h) => played(h, h.number === 1 ? 11 : h.number === 2 ? 9 : 5));
+    const r = adjustedGrossScore(results, null);
+    expect(r.gross).toBe(11 + 9 + 16 * 5);
+    expect(r.adjustedGross).toBe(9 + 9 + 16 * 5);
+  });
+  it("sin Hándicap Index un hoyo levantado vale par + 5 y uno no jugado vale par", () => {
+    const holes = eighteenPar4s();
+    const results = holes.map((h) => played(h, h.number === 1 || h.number === 18 ? null : 5, h.number === 1));
+    const r = adjustedGrossScore(results, null);
+    expect(r.adjustedGross).toBe(9 + 16 * 5 + 4);
+    expect(r.holesPlayed).toBe(17);
+  });
   it("con menos de 10 hoyos jugados la tarjeta no es aceptable", () => {
     const holes = eighteenPar4s();
     const results = holes.map((h) => played(h, h.number > 9 ? null : 5));
