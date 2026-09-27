@@ -53,6 +53,7 @@ Ideas surgidas del diseño, no comprometidas. Priorizar según lo que pida el gr
 - [ ] Importar canchas en bulk (golfapi.io CSV) si se quiere "todas las de Argentina"
 - [x] Ícono y splash propios → hecho en el rediseño (Fase 4 del plan, 2026-09-25)
 - [ ] Tests de integración contra Supabase (RLS, firmas, cascadas) — hoy validado a mano por el subagente de DB
+- [ ] **Distancia al green y Apple Watch** → investigación en `docs/research/2026-09-27-apple-watch.md` (rama `claude/apple-watch-golf-exploration-1jum5r`). Conclusión: la PWA no corre en el reloj (hace falta app nativa SwiftUI, Mac + USD 99/año); la detección de golpes existe en Series 8+ pero nadie la usa sin confirmar el score por hoyo; la geometría de las canchas hay que dibujarla en OpenStreetMap. Orden sugerido: A) distancia al green en la PWA del teléfono, B) anotador de muñeca, C) detección de swings como experimento. Pendiente del dueño: correr la query de Overpass, decir qué relojes tiene el grupo y si hay Mac
 
 ## Fase 4 — Rediseño UI/UX "tarjeta y pizarra" (Fases 0–6 hechas y **en producción** el 2026-09-25; falta la Puerta 2)
 
@@ -101,6 +102,7 @@ Plan completo: `docs/plans/2026-09-25-rediseno-ui-ux.md` (contexto, decisiones, 
 - [ ] Estadísticas del grupo en una sola consulta (una vista); innecesario con 5 golfistas
 - [ ] Ranking por cancha, Stableford / match play, edición de obstáculos, vincular invitado desde el grupo (Fase 3)
 - [ ] `save_course` como RPC transaccional (cerrar versión + versión nueva + hoyos + tees en una sola transacción)
+- [ ] Geometría de hoyos (tee por tee set, polígono del green, obstáculos) ligada a `holes`/`course_versions`, fuente OpenStreetMap (ODbL, atribución); merece ADR. Ver `docs/research/2026-09-27-apple-watch.md`
 - [ ] Defaults `current_date` de la base (p. ej. `player_declared_handicaps.valid_from`) toman la fecha del servidor (UTC): después de las 21 en Argentina es "mañana". La app ya manda la fecha de Buenos Aires en lo que escribe; revisar los defaults o la zona horaria de la base
 
 ## Deuda técnica conocida
