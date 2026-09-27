@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateSignature } from "./sign-estimate";
+import { estimateSignature, resignature } from "./sign-estimate";
 
 const PARS = [4, 4, 3, 5, 4, 4, 3, 4, 4, 4, 5, 3, 4, 4, 5, 4, 3, 4];
 const positions = PARS.map((par, i) => ({ position: i + 1, hole: { number: i + 1, par, strokeIndex: i + 1 } }));
@@ -32,5 +32,20 @@ describe("estimateSignature", () => {
   it("cuenta los Hoyos no terminados", () => {
     const scores = Object.fromEntries(PARS.map((p, i) => [i + 1, i === 4 ? { strokes: null, pickedUp: true } : { strokes: p, pickedUp: false }]));
     expect(estimateSignature(positions, scores, rating, 10).pickedUp).toBe(1);
+  });
+});
+
+describe("resignature", () => {
+  const cuba = { courseRating: 68, slope: 113, par: 68, holesInRound: 18 as const };
+  it("tarjeta histórica: el ajustado es el total y el hándicap de cancha sale del índice de ese día", () => {
+    // Manu, 106 en CUBA con índice 21,6: 21,6 × 113/113 + (68 − 68) = 21,6 → 22; (106 − 68) × 113/113 = 38,0.
+    const r = resignature({ isLegacy: true, legacyGross: 106, scores: {} }, positions, cuba, 21.6);
+    expect(r).toEqual({ courseHandicap: 22, gross: 106, adjustedGross: 106, differential: 38, acceptable: true });
+  });
+  it("tarjeta hoyo por hoyo: igual que el estimado de la firma", () => {
+    const scores = Object.fromEntries(PARS.map((p, i) => [i + 1, { strokes: p + 1, pickedUp: false }]));
+    const e = estimateSignature(positions, scores, rating, 20);
+    const r = resignature({ isLegacy: false, legacyGross: null, scores }, positions, rating, 20);
+    expect(r).toEqual({ courseHandicap: e.courseHandicap, gross: e.gross, adjustedGross: e.adjustedGross, differential: e.differential, acceptable: true });
   });
 });

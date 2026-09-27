@@ -20,11 +20,19 @@ export type CourseSheetProps = {
   current: { courseId: string; teeId: string; holesPlayed: HolesPlayed };
   /** Hoyos jugados (posiciones): se conservan en la cancha nueva. */
   holes: number;
-  /** Quiénes ya firmaron: con alguna firma no se puede cambiar la cancha. */
+  /** Quiénes ya firmaron: sus tarjetas se vuelven a firmar solas con la cancha nueva. */
   signedNames: string[];
 };
 
-/** Cambiar la cancha y el tee de una partida cargada en la equivocada. Se baja aparte, al abrirla. */
+/** "Bauti", "Bauti y Manu", "Agus, Bauti y Manu". */
+function joinNames(names: string[]) {
+  return names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} y ${names[names.length - 1]}`;
+}
+
+/**
+ * Cambiar la cancha y el tee de una partida cargada en la equivocada. Las tarjetas firmadas se vuelven a
+ * firmar solas con la cancha nueva (acción changeRoundCourse). Se baja aparte, al abrirla.
+ */
 export default function CourseSheet({
   open,
   onOpenChange,
@@ -45,7 +53,8 @@ export default function CourseSheet({
 
   const tee = course?.tees.find((t) => t.id === teeId);
   const holesCount = course?.version?.holesCount;
-  const locked = signedNames.length > 0;
+  const signed = signedNames.length > 0;
+  const teeWithoutRating = !!tee && (tee.courseRating == null || tee.slope == null);
   const unchanged = courseId === current.courseId && teeId === current.teeId && (holesCount !== 18 || holes !== 9 || nine === current.holesPlayed);
 
   function pickCourse(id: string) {
@@ -65,7 +74,11 @@ export default function CourseSheet({
         setFields(r.fields ?? {});
         return;
       }
-      toast.success(`Listo: la partida ahora es en ${r.data.courseName}`);
+      const resigned = r.data.resigned;
+      toast.success(
+        `Listo: la partida ahora es en ${r.data.courseName}` +
+          (resigned ? `. ${resigned === 1 ? "Se volvió a firmar 1 tarjeta" : `Se volvieron a firmar ${resigned} tarjetas`}.` : ""),
+      );
       onOpenChange(false);
     });
   }
@@ -84,14 +97,14 @@ export default function CourseSheet({
             <SheetDescription>Para una partida cargada en la cancha o el tee equivocados. Los golpes cargados pasan a los mismos hoyos de la cancha nueva.</SheetDescription>
           </SheetHeader>
           <div className="grid gap-4">
-            {locked && (
-              <Notice tone="warn">
-                {signedNames.length === 1 ? `${signedNames[0]} ya firmó su tarjeta.` : `Ya firmaron ${signedNames.join(" y ")}.`} Para cambiar la cancha, primero hay que desfirmar.
-              </Notice>
-            )}
+            <Notice tone="error">
+              Cambia la cancha para todas las tarjetas de esta partida.
+              {signed &&
+                ` ${signedNames.length === 1 ? `La de ${signedNames[0]} ya está firmada: se vuelve` : `Las de ${joinNames(signedNames)} ya están firmadas: se vuelven`} a firmar sola${signedNames.length === 1 ? "" : "s"} con la cancha nueva, y cambian su diferencial y su Hándicap Index.`}
+            </Notice>
             {error && <Notice tone="error">{error}</Notice>}
             <Field label="Cancha" error={fields.courseVersionId}>
-              <Select value={courseId} disabled={locked} onChange={(e) => pickCourse(e.target.value)}>
+              <Select value={courseId} onChange={(e) => pickCourse(e.target.value)}>
                 {usable.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -107,7 +120,6 @@ export default function CourseSheet({
                   label="Tee"
                   value={teeId}
                   onValueChange={setTeeId}
-                  disabled={locked}
                   options={course.tees.map((t) => ({
                     value: t.id,
                     label: (
@@ -118,9 +130,16 @@ export default function CourseSheet({
                     ),
                   }))}
                 />
-                {fields.teeSetId && <p className="text-sm text-destructive">{fields.teeSetId}</p>}
-                {tee && (tee.courseRating == null || tee.slope == null) && (
-                  <p className="text-sm text-muted-foreground">Las {tee.name} no tienen CR y Slope: para firmar hay que cargarlos.</p>
+                {fields.teeSetId ? (
+                  <p className="text-sm text-destructive">{fields.teeSetId}</p>
+                ) : (
+                  tee &&
+                  teeWithoutRating &&
+                  (signed ? (
+                    <p className="text-sm text-destructive">Las {tee.name} no tienen CR y Slope: con tarjetas firmadas hay que elegir un tee con rating.</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Las {tee.name} no tienen CR y Slope: para firmar hay que cargarlos.</p>
+                  ))
                 )}
               </div>
             )}
@@ -131,7 +150,6 @@ export default function CourseSheet({
                   label="Qué nueve se jugó"
                   value={nine}
                   onValueChange={setNine}
-                  disabled={locked}
                   options={[
                     { value: "ida", label: "Ida (1 a 9)" },
                     { value: "vuelta", label: "Vuelta (10 a 18)" },
@@ -142,7 +160,7 @@ export default function CourseSheet({
             {holesCount === 9 && holes === 18 && <p className="text-sm text-muted-foreground">Es una cancha de 9: los 18 hoyos quedan como dos vueltas.</p>}
           </div>
           <SheetFooter>
-            <Button type="submit" size="lg" pending={pending} pendingLabel="Cambiando…" disabled={locked || !course || !teeId || unchanged}>
+            <Button type="submit" size="lg" pending={pending} pendingLabel="Cambiando…" disabled={!course || !teeId || unchanged || (signed && teeWithoutRating)}>
               Cambiar cancha
             </Button>
             <Button type="button" size="lg" variant="ghost" disabled={pending} onClick={() => onOpenChange(false)}>

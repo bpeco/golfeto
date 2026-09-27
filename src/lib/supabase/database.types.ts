@@ -1388,6 +1388,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      change_round_course_resign: {
+        Args: {
+          p_actor: string
+          p_course_version_id: string
+          p_hole_map: Json
+          p_holes_played: Database["public"]["Enums"]["round_holes"]
+          p_loops: number
+          p_reason: string
+          p_resign: Json
+          p_round_id: string
+          p_tee_set_id: string
+        }
+        Returns: undefined
+      }
       claim_guest: { Args: { p_guest_id: string }; Returns: undefined }
       claimable_guests: {
         Args: never

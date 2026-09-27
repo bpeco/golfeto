@@ -105,6 +105,12 @@ que los llaman por nombre llevan `search_path = public, private`. RPCs: `create_
 que entra aún no ve el grupo), `claim_guest` y `claimable_guests` (definer: el historial importado no es visible
 por RLS hasta reclamarlo), `sign_scorecard`, `unsign_scorecard`, `change_round_course` (invoker; mueve la partida a
 otra versión y tee y cada golpe al hoyo de su misma posición, con el mapa que arma la app con `positionsFor`).
+Con tarjetas firmadas se usa `change_round_course_resign` (0007): **solo `service_role`**, la llama la acción de
+servidor después de verificar con la sesión que el golfista juega la partida o la creó. En una transacción desfirma
+(con motivo), mueve y vuelve a firmar con los valores WHS que calculó el servidor (`resignature`), todo a nombre de
+quien hizo el cambio. La firma de siempre (`sign_scorecard`) y esta comparten el cuerpo en `private.sign_as`.
+Excepción consciente a "solo el dueño firma o desfirma su tarjeta" (decisión del dueño, 2026-09-27): corregir la
+cancha no cambia los golpes, y dejar la firma vieja mantendría el hándicap calculado con la cancha equivocada.
 `auth.uid()` y `current_player_id()` van envueltos en `(select ...)` para que se evalúen una vez por consulta.
 Golfistas y canchas son visibles y editables por todo `authenticated`; grupos sólo por miembros; partidas, tarjetas,
 golpes, firmas y fotos por participantes y por quien comparte grupo con algún participante (ADR-0002).

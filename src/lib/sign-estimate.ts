@@ -52,3 +52,27 @@ export function estimateSignature(
     acceptable: ags.acceptable,
   };
 }
+
+export type Resignature = { courseHandicap: number; gross: number; adjustedGross: number; differential: number; acceptable: boolean };
+
+/**
+ * Firma recalculada de una tarjeta ya firmada cuando cambia la cancha de su partida: mismos golpes y
+ * mismo índice del día (el que quedó en la firma), rating nuevo. Una tarjeta histórica no tiene
+ * golpes por hoyo: el ajustado es su total, como en la importación.
+ */
+export function resignature(
+  card: { isLegacy: boolean; legacyGross: number | null; scores: Record<number, HoleScore | undefined> },
+  positions: Parameters<typeof estimateSignature>[0],
+  rating: RatingForSign,
+  handicapIndex: number | null,
+): Resignature {
+  if (card.isLegacy) {
+    const gross = card.legacyGross ?? 0;
+    const ch = rating.holesInRound === 9 ? courseHandicap9(handicapIndex ?? 0, rating) : courseHandicap(handicapIndex ?? 0, rating);
+    let differential = scoreDifferential(gross, rating);
+    if (rating.holesInRound === 9) differential = differentialFrom9Holes(differential, handicapIndex);
+    return { courseHandicap: ch, gross, adjustedGross: gross, differential, acceptable: card.legacyGross != null };
+  }
+  const e = estimateSignature(positions, card.scores, rating, handicapIndex);
+  return { courseHandicap: e.courseHandicap, gross: e.gross, adjustedGross: e.adjustedGross, differential: e.differential, acceptable: e.acceptable };
+}

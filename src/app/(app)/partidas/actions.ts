@@ -3,7 +3,9 @@
 import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePlayer } from "@/lib/db/player";
+import { resignature } from "@/lib/sign-estimate";
 import { getPlayerHandicap, type PlayerHandicap } from "@/lib/db/handicap";
 import { effectiveTeeRating, getRound, positionsFor } from "@/lib/db/rounds";
 import { layoutForCourseChange } from "@/lib/round-model";
@@ -141,23 +143,28 @@ export async function setRoundTeeRating(roundId: string, raw: unknown): Promise<
 /**
  * Pasa la partida a otra cancha y tee (se cargó en la equivocada). Conserva cuántos hoyos se jugaron
  * y los golpes por posición: el golpe del 5.º hoyo jugado queda en el 5.º hoyo de la cancha nueva.
- * Solo sin tarjetas firmadas: la firma congeló el cálculo con la cancha vieja (la base también lo exige).
+ * Las tarjetas firmadas se desfirman y se vuelven a firmar con la cancha nueva (mismos golpes, mismo
+ * índice del día): la firma congela el cálculo, así que dejarlas como estaban mantendría el hándicap
+ * calculado con la cancha vieja. Queda registrado quién hizo el cambio.
  */
-export async function changeRoundCourse(roundId: string, raw: unknown): Promise<ActionResult<{ courseName: string }>> {
+export async function changeRoundCourse(roundId: string, raw: unknown): Promise<ActionResult<{ courseName: string; resigned: number }>> {
   const parsed = courseChangeSchema.safeParse(raw);
   if (!parsed.success) return fromZod(parsed.error);
   const input = parsed.data;
+  const me = await requirePlayer();
   const round = await getRound(roundId);
   if (!round) return fail("No encontramos la partida. Puede haber sido dada de baja.");
-  const signed = round.scorecards.filter((s) => s.signedAt);
-  if (signed.length) {
-    return fail(`Hay tarjetas firmadas (${signed.map((s) => s.playerName).join(", ")}). Para cambiar la cancha, primero hay que desfirmarlas.`);
+  if (round.createdBy !== me.id && !round.scorecards.some((s) => s.playerId === me.id)) {
+    return fail("Solo los que juegan la partida o quien la creó pueden cambiar la cancha.");
   }
+  const signed = round.scorecards.filter((s) => s.signedAt);
 
   const supabase = await createClient();
   const { data: version, error } = await supabase
     .from("course_versions")
-    .select("id, holes_count, valid_from, valid_to, course:courses!inner(name), holes(id, number, par, stroke_index), tees:tee_sets(id)")
+    .select(
+      "id, holes_count, valid_from, valid_to, course:courses!inner(id, name, club), holes(id, number, par, stroke_index), tees:tee_sets(id, name, course_rating, slope)",
+    )
     .eq("id", input.courseVersionId)
     .is("deleted_at", null)
     .maybeSingle();
@@ -166,7 +173,8 @@ export async function changeRoundCourse(roundId: string, raw: unknown): Promise<
   if (version.valid_from > round.playedOn || (version.valid_to != null && version.valid_to <= round.playedOn)) {
     return fail("Esa cancha no tenía esa versión el día de la partida.", { courseVersionId: "Elegí otra cancha" });
   }
-  if (!version.tees.some((t) => t.id === input.teeSetId)) return fail("Elegí un tee de esa cancha.", { teeSetId: "Elegí un tee de esa cancha" });
+  const tee = version.tees.find((t) => t.id === input.teeSetId);
+  if (!tee) return fail("Elegí un tee de esa cancha.", { teeSetId: "Elegí un tee de esa cancha" });
 
   const layout = layoutForCourseChange(version.holes_count, round.positions.length, input.nine);
   const holes = version.holes.map((h) => ({ id: h.id, number: h.number, par: h.par, strokeIndex: h.stroke_index, meters: null }));
@@ -174,21 +182,60 @@ export async function changeRoundCourse(roundId: string, raw: unknown): Promise<
   if (positions.length !== round.positions.length) {
     return fail(`La cancha nueva tiene ${positions.length} hoyos para esta partida y se jugaron ${round.positions.length}.`);
   }
-
-  const { error: rpcError } = await supabase.rpc("change_round_course", {
+  const move = {
     p_round_id: roundId,
     p_course_version_id: version.id,
-    p_tee_set_id: input.teeSetId,
+    p_tee_set_id: tee.id,
     p_holes_played: layout.holesPlayed,
     p_loops: layout.loops,
     p_hole_map: positions.map((p) => ({ position: p.position, hole_id: p.hole.id })),
-  });
-  if (rpcError) return fail(friendlyDbError(rpcError));
+  };
+
+  if (signed.length === 0) {
+    const { error: rpcError } = await supabase.rpc("change_round_course", move);
+    if (rpcError) return fail(friendlyDbError(rpcError));
+  } else {
+    const rating = effectiveTeeRating({
+      holesPlayed: layout.holesPlayed,
+      loops: layout.loops,
+      course: { id: version.course.id, name: version.course.name, club: version.course.club, holesCount: version.holes_count, versionId: version.id },
+      tee: { id: tee.id, name: tee.name, courseRating: tee.course_rating == null ? null : Number(tee.course_rating), slope: tee.slope },
+      holes,
+    });
+    if (!rating) {
+      return fail(`Las ${tee.name} no tienen CR y Slope: sin eso no se pueden volver a firmar las tarjetas. Elegí otro tee o cargalos en la cancha.`, {
+        teeSetId: `Las ${tee.name} no tienen CR y Slope`,
+      });
+    }
+    const resign = [];
+    for (const card of signed) {
+      if (!card.signature) return fail(`No encontramos la firma de ${card.playerName}. Probá de nuevo.`);
+      const r = resignature(card, positions, rating, card.signature.handicapIndex);
+      if (!r.acceptable) return fail(`La tarjeta de ${card.playerName} no alcanza los hoyos mínimos en la cancha nueva.`);
+      resign.push({
+        scorecard_id: card.id,
+        handicap_source: card.signature.handicapSource,
+        handicap_index: card.signature.handicapIndex,
+        course_handicap: r.courseHandicap,
+        adjusted_gross: r.adjustedGross,
+        differential: r.differential,
+      });
+    }
+    const admin = createAdminClient();
+    if (!admin) return fail("No se pudieron volver a firmar las tarjetas: falta SUPABASE_SERVICE_ROLE_KEY en el servidor. Avisale al dueño del proyecto.");
+    const { error: rpcError } = await admin.rpc("change_round_course_resign", {
+      ...move,
+      p_actor: me.id,
+      p_resign: resign,
+      p_reason: `Cambio de cancha: de ${round.course.name} (${round.tee.name}) a ${version.course.name} (${tee.name}), por ${me.displayName}`,
+    });
+    if (rpcError) return fail(friendlyDbError(rpcError));
+  }
 
   revalidatePath(`/partidas/${roundId}`);
   revalidatePath("/partidas");
   revalidatePath("/");
-  return ok({ courseName: version.course.name });
+  return ok({ courseName: version.course.name, resigned: signed.length });
 }
 
 export type SignSummary = {

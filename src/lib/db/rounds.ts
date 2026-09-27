@@ -17,7 +17,7 @@ export const getRound = cache(async (roundId: string): Promise<RoundDetail | nul
        scorecards(id, player_id, is_legacy, legacy_gross, signed_at,
          player:players!scorecards_player_id_fkey(display_name, user_id),
          hole_scores(position, strokes, picked_up),
-         signature:scorecard_signatures!scorecards_current_signature_fk(course_handicap, gross, adjusted_gross, differential, handicap_index)),
+         signature:scorecard_signatures!scorecards_current_signature_fk(course_handicap, gross, adjusted_gross, differential, handicap_index, handicap_source)),
        photos:round_photos(id, storage_path, created_at)`,
     )
     .eq("id", roundId)
@@ -74,6 +74,7 @@ export const getRound = cache(async (roundId: string): Promise<RoundDetail | nul
                 adjustedGross: s.signature.adjusted_gross!,
                 differential: Number(s.signature.differential),
                 handicapIndex: s.signature.handicap_index == null ? null : Number(s.signature.handicap_index),
+                handicapSource: s.signature.handicap_source!,
               }
             : null,
         scores: Object.fromEntries(s.hole_scores.map((hs) => [hs.position, { strokes: hs.strokes, pickedUp: hs.picked_up }])),

@@ -51,7 +51,7 @@ export const round: RoundDetail = {
       isLegacy: false,
       legacyGross: null,
       signedAt: "2026-09-12T20:00:00Z",
-      signature: { courseHandicap: 20, gross: 91, adjustedGross: 89, differential: 17.2, handicapIndex: 18.4 },
+      signature: { courseHandicap: 20, gross: 91, adjustedGross: 89, differential: 17.2, handicapIndex: 18.4, handicapSource: "index" },
       scores: score([5, 5, 4, 6, 5, 4, 3, 5, 5, 5, 7, 3, 5, 6, 5, 5, 4, 9]),
     },
     {
@@ -73,7 +73,7 @@ export const round: RoundDetail = {
       isLegacy: true,
       legacyGross: 96,
       signedAt: "2026-09-12T20:00:00Z",
-      signature: { courseHandicap: 26, gross: 96, adjustedGross: 96, differential: 23.1, handicapIndex: 24.0 },
+      signature: { courseHandicap: 26, gross: 96, adjustedGross: 96, differential: 23.1, handicapIndex: 24.0, handicapSource: "index" },
       scores: {},
     },
     {

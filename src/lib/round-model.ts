@@ -16,7 +16,14 @@ export type RoundScorecard = {
   isLegacy: boolean;
   legacyGross: number | null;
   signedAt: string | null;
-  signature: { courseHandicap: number; gross: number; adjustedGross: number; differential: number; handicapIndex: number | null } | null;
+  signature: {
+    courseHandicap: number;
+    gross: number;
+    adjustedGross: number;
+    differential: number;
+    handicapIndex: number | null;
+    handicapSource: Database["public"]["Enums"]["handicap_source"];
+  } | null;
   /** Por posición (1..18). */
   scores: Record<number, { strokes: number | null; pickedUp: boolean }>;
 };
