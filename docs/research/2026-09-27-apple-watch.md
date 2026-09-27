@@ -68,12 +68,29 @@ Detalle y fuentes en el Apéndice C.
 - Auth: la app entra con Google vía Supabase. Un reloj que use Sign in with Apple crea otra identidad salvo que se vincule a la misma cuenta (Supabase permite vincular identidades; sin verificar el flujo exacto en esta sesión). Alternativa: pasar la sesión desde el iPhone por Watch Connectivity, aunque Apple exige que la app también pueda loguearse sola.
 - Convenciones: sin borrado físico, `DELETE` para baja lógica, fechas de Buenos Aires; una app Swift tendría que respetar lo mismo que `docs/db-design.md`.
 
-## Pendientes del dueño (no se pueden resolver desde esta sesión)
+## Verificado desde la Mac del dueño (2026-09-27, sin proxy)
 
-- [ ] Correr la query de Overpass (Apéndice C.1) para Miraflores, Los Cedros y CUBA Villa de Mayo y anotar cuántos `golf=hole` y `golf=green` hay.
+Lo que la sesión en la nube no pudo confirmar se verificó después desde la terminal local, contra las páginas primarias.
+
+- **OpenStreetMap (Overpass, datos al 2026-09-27).** Las tres canchas existen como `leisure=golf_course`: Miraflores Country Club (relación 15569350), Los Cedros Golf Club (way 176336963) y Club Universitario de Buenos Aires en Villa de Mayo (way 258487608). Adentro, casi nada: en Miraflores hay **1 green, 1 fairway y 3 bunkers** sin `ref` ni hoyo; en Villa de Mayo, **cero** elementos `golf=*`. Ningún `golf=hole` ni `golf=tee` en ninguna. Confirmado: los hoyos hay que dibujarlos. Query usada: bbox `(-34.80,-59.20,-34.25,-58.30)` con `nwr["leisure"="golf_course"]` (89 canchas en la zona norte) y luego `nwr["golf"]` por bbox de cada cancha. Overpass exige un `User-Agent` propio; sin eso responde 406.
+- **Garmin Golf Course Guide** (https://www.garmin.com/en-US/golf-courses/, renderizado con Chromium): "Miraflores Country Club, Ruta Panamericana Km 35,5 Ramal A Pilar, Garin" **sí** figura; "Club Universitario Buenos Aires ~ Villa de Mayo" **sí** figura; "Los Cedros" **no** da resultados en Argentina.
+- **Los Cedros.** El sitio de CUBA lo confirma: "La Sede de Los Cedros funcionó entre 2001 y 2019 [...] el Club decidió cerrarla a partir del 29 de agosto de 2019 [...] hasta tanto venza el usufructo de la misma en 2021" (https://www.cuba.org.ar/villa-de-mayo/los-cedros-golf). Si el grupo juega hoy en "Los Cedros", es otra cancha o la misma bajo otra administración; hay que aclararlo antes de mapearla.
+- **Garmin AutoShot** (manual Approach S70, leído completo): "Automatic shot detection works best when you wear the device on your leading wrist and make good contact with the ball. Putts are not detected." Y la tarjeta se carga a mano: "Select Scorecard [...] Select a hole. Select + or − to set the score." El score automático solo con CT10 en el putter: "It does not detect gimme putts, penalty strokes, or missed shots, which must be entered manually."
+- **Batería Apple** (https://www.apple.com/watch/battery/, ya con la línea 2026): Apple Watch **Series 12: hasta 10 h** de workout con GPS; **SE 3: hasta 7 h**; **Ultra 4: 18 h** (25 h en Extended Workout, 45 h en Max Extended). Probado "sin iPhone y con sensor de ritmo cardíaco en carrera al aire libre". Una vuelta de 4 a 5 h entra en todos, con margen chico en SE 3.
+- **Specs**: SE 3 y Series 11 traen GPS L1; Ultra 3 trae "L1 and L5 precision dual-frequency GPS" (support.apple.com/en-us/125094, /125093, /125095). Apple no publica precisión en metros.
+- **GPS.gov** (https://www.gps.gov/gps-accuracy): "GPS-enabled smartphones are typically accurate to within a 4.9 m (16 ft.) radius under open sky"; URE de la señal ≤ 2,0 m al 95 %.
+- **golfapi.io**: la home dice "over 40,000 courses", incluye "Coordinates of green, tees and other points of interests", uso comercial permitido y reventa prohibida, y "You may store and cache the fetched course data". **No hay página de precios pública** (`/pricing` da 404; solo formulario de contacto). Sigue sin verificarse la cobertura de Argentina con coordenadas.
+- **Términos de Google Earth** (https://www.google.com/help/terms_maps-earth/): prohíbe "use Google Earth to create or augment any other mapping-related dataset [...] for use in a service that is a substitute for, or a substantially similar service to, Google Maps". Se mantiene la recomendación de no calcar sobre Google.
+- **Wiki OSM `golf=hole`**: "The hole is represented by a way along the standard playing path from tee area to the green"; tags `ref`, `par`, `handicap`. **Aerial imagery**: Bing dio "special permission to use their imagery to create our maps" (nov. 2010); Esri "availability of satellite imagery to the OSM community" (ago. 2017).
+- **Apple Newsroom (mayo 2024)**: "The high-frequency motion API released in watchOS 10 [...] has equipped developers such as Golfshot [...] to detect the precise moment the club strikes the ball."
+
+## Pendientes del dueño
+
+- [x] Overpass: corrido; las tres canchas están sin hoyos mapeados (ver arriba).
+- [x] Garmin: Miraflores y CUBA Villa de Mayo están en su base; Los Cedros no.
 - [ ] Decir qué relojes tiene el grupo (modelo y watchOS) y si hay una Mac disponible: define si B y C son posibles.
-- [ ] Confirmar qué cancha es "Los Cedros": el sitio de CUBA indica que la cancha Los Cedros de Villa de Mayo cerró en agosto de 2019 (vía snippet, sin verificar).
-- [ ] Opcional: buscar las tres canchas en el localizador de Garmin (https://www.garmin.com/es-AR/golf-courses/) por curiosidad; su base no es reutilizable igual.
+- [ ] Aclarar qué cancha es "Los Cedros" (la de CUBA en Villa de Mayo cerró en 2019, confirmado en el sitio del club).
+- [ ] Si se avanza con A: dibujar los hoyos de Miraflores y CUBA Villa de Mayo en OpenStreetMap (editor iD sobre Esri) y anotar los ids de las canchas de arriba en el modelo de geometría.
 
 ---
 
