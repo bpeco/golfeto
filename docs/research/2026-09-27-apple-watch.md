@@ -84,13 +84,14 @@ Lo que la sesión en la nube no pudo confirmar se verificó después desde la te
 - **Wiki OSM `golf=hole`**: "The hole is represented by a way along the standard playing path from tee area to the green"; tags `ref`, `par`, `handicap`. **Aerial imagery**: Bing dio "special permission to use their imagery to create our maps" (nov. 2010); Esri "availability of satellite imagery to the OSM community" (ago. 2017).
 - **Apple Newsroom (mayo 2024)**: "The high-frequency motion API released in watchOS 10 [...] has equipped developers such as Golfshot [...] to detect the precise moment the club strikes the ball."
 
-## Pendientes del dueño
+## Respuestas del dueño (2026-09-27) y alcance
 
-- [x] Overpass: corrido; las tres canchas están sin hoyos mapeados (ver arriba).
-- [x] Garmin: Miraflores y CUBA Villa de Mayo están en su base; Los Cedros no.
-- [ ] Decir qué relojes tiene el grupo (modelo y watchOS) y si hay una Mac disponible: define si B y C son posibles.
-- [ ] Aclarar qué cancha es "Los Cedros" (la de CUBA en Villa de Mayo cerró en 2019, confirmado en el sitio del club).
-- [ ] Si se avanza con A: dibujar los hoyos de Miraflores y CUBA Villa de Mayo en OpenStreetMap (editor iD sobre Esri) y anotar los ids de las canchas de arriba en el modelo de geometría.
+- Reloj: **Apple Watch Series 6, 44 mm** (sin `CMBatchedSensorManager`; se queda en watchOS 26 porque watchOS 27 requiere SE 3, Series 9+ o Ultra 2+, https://www.apple.com/watchos/; watchOS 26 sí lo soporta, página de Apple archivada en marzo de 2026: https://web.archive.org/web/20260306025131/https://www.apple.com/os/watchos/). Xcode 27 compila para watchOS 9 a 27 (https://developer.apple.com/support/xcode/).
+- Mac con Xcode y Apple Developer Program: sí, ya pago.
+- Alcance elegido: **reloj solo + PWA**, sin app de iPhone. Foco exclusivo en Apple Watch, "lo más completo posible".
+- "Los Cedros" era una confusión de nombre: la cancha es **CUBA Villa de Mayo**. Canchas a mapear: Miraflores y CUBA Villa de Mayo.
+- El dueño dibuja las canchas a mano en OSM: guía en `2026-09-27-mapear-canchas-osm.md`.
+- Alcance completo en `docs/plans/2026-09-27-apple-watch-alcance.md`. La planificación por fases se hace en otra sesión.
 
 ---
 

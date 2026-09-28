@@ -53,7 +53,7 @@ Ideas surgidas del diseño, no comprometidas. Priorizar según lo que pida el gr
 - [ ] Importar canchas en bulk (golfapi.io CSV) si se quiere "todas las de Argentina"
 - [x] Ícono y splash propios → hecho en el rediseño (Fase 4 del plan, 2026-09-25)
 - [ ] Tests de integración contra Supabase (RLS, firmas, cascadas) — hoy validado a mano por el subagente de DB
-- [ ] **Distancia al green y Apple Watch** → investigación en `docs/research/2026-09-27-apple-watch.md` (rama `claude/apple-watch-golf-exploration-1jum5r`). Conclusión: la PWA no corre en el reloj (hace falta app nativa SwiftUI, Mac + USD 99/año); la detección de golpes existe en Series 8+ pero nadie la usa sin confirmar el score por hoyo; la geometría de las canchas hay que dibujarla en OpenStreetMap. Orden sugerido: A) distancia al green en la PWA del teléfono, B) anotador de muñeca, C) detección de swings como experimento. Verificado desde la Mac: en OSM las tres canchas están sin hoyos mapeados; Garmin tiene Miraflores y CUBA Villa de Mayo, no Los Cedros (CUBA cerró esa sede en 2019). Pendiente del dueño: qué relojes tiene el grupo, si hay Mac, y qué cancha es "Los Cedros"
+- [ ] **Apple Watch** → alcance cerrado en `docs/plans/2026-09-27-apple-watch-alcance.md` (reloj solo + PWA, Series 6 del dueño en watchOS 26, canchas Miraflores y CUBA Villa de Mayo dibujadas por el dueño en OSM). Research: `docs/research/2026-09-27-apple-watch.md`; guía de mapeo: `docs/research/2026-09-27-mapear-canchas-osm.md`. **Siguiente sesión: planificación por fases sobre ese alcance.** Pendiente del dueño: empezar a dibujar Miraflores en OSM; decir qué relojes tiene el resto del grupo
 
 ## Fase 4 — Rediseño UI/UX "tarjeta y pizarra" (Fases 0–6 hechas y **en producción** el 2026-09-25; falta la Puerta 2)
 
