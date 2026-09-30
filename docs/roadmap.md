@@ -103,6 +103,22 @@ Plan completo: `docs/plans/2026-09-25-rediseno-ui-ux.md` (contexto, decisiones, 
 - [ ] `save_course` como RPC transaccional (cerrar versión + versión nueva + hoyos + tees en una sola transacción)
 - [ ] Defaults `current_date` de la base (p. ej. `player_declared_handicaps.valid_from`) toman la fecha del servidor (UTC): después de las 21 en Argentina es "mañana". La app ya manda la fecha de Buenos Aires en lo que escribe; revisar los defaults o la zona horaria de la base
 
+## Exploración — Análisis del swing con el iPhone (investigación, 2026-09-30)
+
+Pedido del dueño: filmarse con el iPhone en cada golpe de una partida y, al terminar, recibir recomendaciones reales ("en 15 golpes hiciste X con el brazo izquierdo, que hace que Y"), posiblemente con una app en Swift. **Solo investigación, sin código**, en la rama `claude/quirky-brown-ultwa1`: `docs/research/2026-09-30-analisis-de-swing-iphone.md` (plataforma Apple, ciencia del swing y datasets, productos, reglas de golf, análisis con Claude, agregación, integración con Galf, plan por etapas, fuentes).
+
+Conclusiones que condicionan cualquier implementación:
+
+- Factible con app nativa Swift (captura 1080p a 240 fps, Vision 2D/3D, Action Classifier de Create ML para detectar el swing, Apple Watch a 800 Hz para el impacto, GolfDB/CaddieSet para las fases). Claude no acepta video: se mandan 8 frames por fase; ≈ US$ 0,90 por partida con Sonnet 5.5 y Batches.
+- "100 swings" son ~40 swings completos por vuelta (el resto putts, juego corto y penalidades). Los umbrales para afirmar algo se dimensionan para 40 y el informe tiene que acumular partidas.
+- Lo defendible en 2D con cámara fija: 7 fallas del vocabulario de TPI (early extension, sway, slide, pérdida de postura, reverse spine, chicken wing, hanging back) más tempo, como tendencia relativa al propio golfista. No prometer 3D en grados, muñeca, cara del palo ni "por esto hiciste slice" (el vuelo lo determinan cara, trayectoria y centrado, que no se ven).
+- Regla 4.3a(3) permite grabar para usar después; 4.3a(4) prohíbe mirar el video en la vuelta: grabar sí, mostrar al firmar.
+- El riesgo número uno es quién apoya el teléfono en cada golpe; ningún producto documenta ese flujo. El plan arranca en el driving range con trípode (E0) y llega a la cancha en E3.
+- Sin un set de 150–300 swings etiquetados por un instructor, el informe es una opinión con formato de estadística. No hay evidencia publicada de que el feedback automático por pose baje el hándicap de un amateur.
+
+- [ ] Decisiones del dueño antes de la E0 (sección 13 del documento): trípode/clip/amigo, vista inicial (frente o atrás), modelo de Apple Watch, Mac disponible para Xcode, marcar el resultado de cada golpe con un toque, instructor para etiquetar, visibilidad del video en el grupo
+- [ ] Al implementar, migrar `GALF_VISION_MODEL` a `claude-sonnet-5-5` (Sonnet 5 figura como legacy en la doc de Anthropic, mismo precio). Aplica también a la lectura de tarjetas de hoy
+
 ## Deuda técnica conocida
 
 - `sign_scorecard` recibe el cálculo WHS desde la app (`p_course_handicap`, etc.); la base no lo verifica. Decidido así (Fase 0, pregunta 3 del subagente de DB).
