@@ -1,5 +1,6 @@
 models/
 out/
 samples/golfdb_test_video.mp4
+samples/peek*/
 venv/
 __pycache__/

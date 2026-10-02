@@ -428,7 +428,7 @@ Los ocho frames clave con el esqueleto están en `prototypes/swing-lab/out/golfd
 
 ### 11.4 Segundo video: de frente, mandado por el dueño (2026-10-02)
 
-El dueño adjuntó en el chat `swing-gaston.mp4`: un driver filmado **de frente**, 720×1280 vertical, **30 fps**, 96 frames (3,2 s), 0,9 MB (recomprimido al compartirlo: no es el original de 240 fps). Vista limpia, cuerpo entero, teléfono quieto. El video no se commitea (es de una persona); queda en `prototypes/swing-lab/samples/` de la sesión.
+El dueño adjuntó en el chat `swing-gaston.mp4`: un driver filmado **de frente**, 720×1280 vertical, **30 fps**, 96 frames (3,2 s), 0,9 MB (recomprimido al compartirlo: no es el original de 240 fps). Vista limpia, cuerpo entero, teléfono quieto. Queda commiteado en `prototypes/swing-lab/samples/swing-gaston.mp4` como video de prueba (el dueño quería subirlo al repo).
 
 | Qué | Resultado |
 |---|---|
