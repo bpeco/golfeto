@@ -578,7 +578,14 @@ def main() -> None:
     if args.swingnet:
         from swingnet import predict_events
 
-        sn_ev, sn_conf, _ = predict_events(clip.frames)
+        # recorte al golfista (caja de todos los puntos en todos los frames, con margen)
+        pts = xy[det] if det.any() else xy
+        x0, y0 = np.nanmin(pts[:, :, 0]), np.nanmin(pts[:, :, 1])
+        x1, y1 = np.nanmax(pts[:, :, 0]), np.nanmax(pts[:, :, 1])
+        mx, my = 0.3 * (x1 - x0), 0.2 * (y1 - y0)
+        crop = (int(max(0, x0 - mx)), int(max(0, y0 - my)),
+                int(min(clip.width, x1 + mx)), int(min(clip.height, y1 + my)))
+        sn_ev, sn_conf, _ = predict_events(clip.frames, crop=crop)
         comp = {}
         for name in EVENTS:
             comp[name] = {"pose": int(ev[name]), "swingnet": int(sn_ev[name]),

@@ -81,12 +81,22 @@ def preprocess(frames_bgr: list[np.ndarray]) -> np.ndarray:
     return out
 
 
-def predict_events(frames_bgr: list[np.ndarray], seq_length: int = 64) -> tuple[dict[str, int], dict[str, float], np.ndarray]:
-    """Devuelve (frame por evento, confianza por evento, probs[T, 9])."""
+def predict_events(frames_bgr: list[np.ndarray], seq_length: int = 256,
+                   crop: tuple[int, int, int, int] | None = None) -> tuple[dict[str, int], dict[str, float], np.ndarray]:
+    """Devuelve (frame por evento, confianza por evento, probs[T, 9]).
+
+    crop = (x0, y0, x1, y1) en píxeles para recortar al golfista antes de bajar a
+    160×160 (GolfDB está recortado al golfista; en un video vertical entero queda
+    diminuto). seq_length: la LSTM se reinicia en cada tramo, así que conviene que
+    el swing entero entre en uno (el test_video.py original usa 64).
+    """
     import torch
     import torch.nn.functional as F
 
     model = build_model()
+    if crop is not None:
+        x0, y0, x1, y1 = crop
+        frames_bgr = [fr[y0:y1, x0:x1] for fr in frames_bgr]
     x = torch.from_numpy(preprocess(frames_bgr)).unsqueeze(0)  # (1, T, 3, 160, 160)
     probs = []
     with torch.no_grad():

@@ -426,9 +426,31 @@ Los ocho frames clave con el esqueleto están en `prototypes/swing-lab/out/golfd
 4. **30 fps es poco.** En este amateur el downswing son 19 frames; en un pro serían 8. Para el impacto y el tempo, 120 o 240 fps.
 5. **Lo que se mide es 2D y relativo**: inclinaciones en grados proyectados y desplazamientos en largos de torso. Sirve para comparar swings del mismo golfista desde la misma vista, que es lo que el informe de §9 necesita.
 
-### 11.4 Qué falta para cerrar esta validación
+### 11.4 Segundo video: de frente, mandado por el dueño (2026-10-02)
 
-- Un video **de frente** del dueño (la vista que eligió el 2026-10-02) y, si puede, uno de perfil; 120 o 240 fps, cámara quieta, un swing por clip: correr el prototipo y mirar si las fases y las métricas de frente (sway, slide, reverse spine, brazo adelantado) salen razonables. Es lo que esta sesión no pudo hacer: el único video accesible estaba en diagonal.
+El dueño adjuntó en el chat `swing-gaston.mp4`: un driver filmado **de frente**, 720×1280 vertical, **30 fps**, 96 frames (3,2 s), 0,9 MB (recomprimido al compartirlo: no es el original de 240 fps). Vista limpia, cuerpo entero, teléfono quieto. El video no se commitea (es de una persona); queda en `prototypes/swing-lab/samples/` de la sesión.
+
+| Qué | Resultado |
+|---|---|
+| Pose | 96 de 96 frames; visibilidad media 0,92; tobillos quietos (0,04 torsos) |
+| Vista detectada | **frente** (ratio 0,59): la primera vista limpia que probamos |
+| Fases, heurística | address 36 · toe-up 45 · mid-backswing 54 · top 58 · mid-downswing 61 · impacto 65 · mid-follow-through 66 · finish 95 (el clip termina antes del finish: 95 es el último frame) |
+| Fases, SwingNet | address 33 · toe-up 46 · mid-backswing 51 · top 57 · mid-downswing 61 · **impacto 65** · mid-follow-through 67 · finish 88 |
+| Acuerdo | 0 a 3 frames en todas las fases de movimiento; el impacto coincide exactamente, y los frames 65 y 66 lo confirman (palo en la pelota en 65, pelota ya salida en 66) |
+| Tempo | backswing 0,73 s (22 frames), downswing 0,23 s (7 frames): **3,14:1**, en el rango de los pros de GolfDB (3,4:1, downswing de 8 frames) |
+| Brazo adelantado (izquierdo) | codo 149° en el top (pros: 150–165°), 174° en el impacto y en el mid-follow-through (recto, sin chicken wing) |
+| Caderas | sin sway en el top (−0,04 torsos); slide al impacto 0,32 torsos = 0,34 del ancho de stance hacia el objetivo (TPI: lo normal son ~10 cm; con driver, más); cadera 0,18 stance adelante de los tobillos en el impacto (no hay hanging back) |
+| Tronco | inclinación −4° en address, −3° en el top, −12° en el impacto (positivo sería hacia el objetivo): sin reverse spine; inclinación secundaria típica de driver en el impacto |
+| Cabeza | 0,06 torsos hacia el objetivo en el top y 0,07 en el impacto (unos 3 cm; poco) |
+| Giro aparente | ancho de hombros en el top 0,63 del de address; caderas 0,92: mucho más giro de hombros que de caderas (proyectado, no son grados) |
+| Rodillas | 173° y 171° en address: casi rectas (referencia instruccional 155–165°) |
+| Calidad | visibilidad mínima 0,20 en una fase (el codo trasero tapado en el top) |
+
+**Qué aprendimos con este video.** (1) De frente, con buena luz y el cuerpo entero, la pose y las fases salen limpias al primer intento, y las métricas de frente se interpretan solas: este swing no tiene ninguna de las fallas de frente del catálogo (sway, slide excesivo, reverse spine, chicken wing, hanging back). (2) **SwingNet necesita el recorte al golfista y el swing entero en una sola pasada**: con el video vertical entero y los tramos de 64 frames del script original, dio impacto en el frame 39 (antes del takeaway) y tempo 19:1; con el recorte a la caja de la pose y una sola pasada, coincide con la heurística a 0–3 frames. Queda implementado en `analyze.py --swingnet`. (3) A 30 fps este downswing son 7 frames: cualquier métrica del impacto tiene ±1 frame de error, es decir ±15 % del downswing. El original a 240 fps lo bajaría a ±2 %. (4) Cortar el clip justo después del impacto deja al "finish" sin definir; conviene filmar 1 o 2 segundos más.
+
+### 11.5 Qué falta para cerrar esta validación
+
+- El **mismo video en su archivo original a 240 fps** (AirDrop, no compartido por chat), para medir el impacto y el tempo con la precisión que la app va a tener. Y un video de perfil, cuando se quiera probar esa vista.
 - Etiquetas humanas de las fases en 10–20 swings, para medir la heurística con el mismo criterio que GolfDB (frame correcto ± 1 a 30 fps).
 - Probar la heurística con swings de práctica antes del real, con un zurdo y con clips sin pausa en el top.
 
