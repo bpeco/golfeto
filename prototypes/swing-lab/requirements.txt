@@ -1,0 +1,7 @@
+mediapipe>=1.0
+opencv-python-headless
+numpy
+matplotlib
+# Solo para swingnet.py (fases con el modelo de GolfDB). Pesado; opcional.
+# torch
+# torchvision

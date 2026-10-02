@@ -1,6 +1,6 @@
 # Filmarse en cada golpe con el iPhone y recibir recomendaciones reales al terminar los 18 hoyos
 
-Investigación, no implementación. Fecha: 2026-09-30. Rama: `claude/quirky-brown-ultwa1` (separada de producción; no toca código ni base). Fuentes consultadas: documentación oficial de Apple, Anthropic, Supabase, Google y USGA/R&A, papers y repos originales, y sitios oficiales de los productos. Cada afirmación lleva su fuente; lo que no se pudo verificar en fuente primaria queda marcado **(sin verificar)**. La lista completa está al final.
+Investigación, no implementación. Fecha: 2026-09-30; validación 1 agregada el 2026-10-02 (§11, con un prototipo descartable en `prototypes/swing-lab/`). Rama: `claude/quirky-brown-ultwa1` (separada de producción; no toca la app ni la base). Fuentes consultadas: documentación oficial de Apple, Anthropic, Supabase, Google y USGA/R&A, papers y repos originales, y sitios oficiales de los productos. Cada afirmación lleva su fuente; lo que no se pudo verificar en fuente primaria queda marcado **(sin verificar)**. La lista completa está al final.
 
 Pedido textual del dueño: *"usar mi celular para filmarme en cada golpe, que mire mi swing y haga recomendaciones REALES sobre qué puedo estar haciendo mal al cabo de 100 swings [...] que me diga 'che, en 15 golpes hiciste X con tu brazo izquierdo que hace que XXX'. Para filmar con mi iPhone. Puede ser una app hecha en Swift."*
 
@@ -384,7 +384,51 @@ RLS como `hole_scores` (participantes y quien comparte grupo, ADR-0002), con una
 - Server Action sincrónica con 100 llamadas: frágil (un 429 a mitad obliga a rehacer todo) y sin `maxDuration` verificado (`vercel.com` bloqueado; la doc del conector solo muestra ejemplos de `maxDuration = 1800`). Sirve para una sola llamada corta: la síntesis.
 - Edge Function de Supabase: 2 s de CPU por request y sin `sharp` ([límites](https://supabase.com/docs/guides/functions/limits)); no aporta nada que la Server Action no haga con la misma key.
 
-## 11. Plan por etapas
+## 11. Validación 1 (2026-10-02): de una grabación a movimiento, fases y métricas
+
+Pregunta del dueño: dado un video de un swing (vista lateral), ¿podemos usar un modelo que detecte los movimientos y la calidad del swing? Prototipo descartable en `prototypes/swing-lab/` (Python; README con cómo correrlo en una Mac con un video propio), corrido en esta sesión sobre el único video de golf con licencia conocida y accesible desde acá: `test_video.mp4` del repo de GolfDB (354×492, 30 fps, 8,8 s, 264 frames, un golfista amateur, cámara en diagonal entre "de frente" y "desde atrás"). No se encontró ningún video de perfil (down-the-line) de libre acceso; CaddieSet publica métricas, no videos.
+
+### 11.1 Qué se corrió
+
+- **Pose**: MediaPipe Pose Landmarker 1.0.1 (modelo heavy, Apache 2.0), 33 puntos por frame con visibilidad. Es el equivalente abierto de Vision de Apple (19 puntos): todos los puntos que usa este prototipo (nariz, hombros, codos, muñecas, caderas, rodillas, tobillos) existen en Vision, así que el port a Swift no pierde nada de lo validado acá.
+- **Fases**: heurística propia sobre la trayectoria de las manos (punto medio de las muñecas), sin modelo entrenado: el pico de velocidad marca el downswing; el impacto es el punto más bajo de las manos en los 0,4 s siguientes; el top, el punto más alto en los 1,5 s anteriores (y si hay pausa, el último frame quieto antes de bajar); el address, el último frame quieto con las manos por debajo de la cadera antes del takeaway; el finish, el primer tramo quieto después del impacto; las fases intermedias, por cruces de altura (manos a la altura de la cadera = toe-up y mid-follow-through; muñeca a la altura del hombro = mid-backswing y mid-downswing).
+- **Segunda opinión**: SwingNet (el modelo de GolfDB, MobileNetV2 + LSTM bidireccional) con los pesos originales de McNally, encontrados en un espejo de Git LFS en GitHub (Google Drive está bloqueado en la sesión; mismo tamaño en bytes que el archivo del autor; licencia CC BY-NC 4.0, uso no comercial, solo para esta validación), portado a CPU en `swingnet.py`.
+- **Vista**: detectada por el ancho proyectado de hombros y caderas respecto del largo del torso en address (≥ 0,45 frente, ≤ 0,25 atrás, en el medio diagonal).
+- **Métricas**: las de §4.5, por vista, más la calidad del clip.
+
+### 11.2 Resultado
+
+| Qué | Resultado |
+|---|---|
+| Pose detectada | 264 de 264 frames; visibilidad media 0,80 en los 12 puntos centrales; cuerpo entero en cuadro en todos los frames |
+| Tiempo de proceso | 22 s para 8,8 s de video en CPU (4 núcleos, sin GPU): ~2,5× tiempo real con el modelo heavy |
+| Vista detectada | diagonal (ratio 0,34): la cámara está entre el frente y el perfil |
+| Fases (frame) | address 84 · toe-up 87 · mid-backswing 101 · top 121 · mid-downswing 130 · impacto 140 · mid-follow-through 146 · finish 176 |
+| Tempo | backswing 1,24 s (37 frames, con una pausa de ~0,3 s en el top), downswing 0,63 s (19 frames): **1,95:1** (pros en GolfDB: 3,4:1 y el downswing son 8 frames) |
+| Cabeza | se aleja del objetivo 0,15 torsos en el top y vuelve a 0,07 en el impacto |
+| Tronco | inclinación 31° en address, 30° en el top, 27° en el impacto (pierde 4°) |
+| Rodillas | flexión 134° / 148° en address (izquierda / derecha) |
+| Caderas | sway 0,06 torsos en el top; sin stance de referencia (los tobillos se superponen en la diagonal) |
+| Brazo adelantado y giro aparente | calculados pero marcados "baja confianza": en diagonal el brazo adelantado se confunde y el ancho proyectado no mide giro |
+| SwingNet | pendiente: al cerrar este commit PyTorch todavía se estaba instalando (los wheels de PyPI traen CUDA, varios GB); `analyze.py --swingnet` queda listo y la comparación se agrega en el commit siguiente |
+
+Los ocho frames clave con el esqueleto están en `prototypes/swing-lab/out/golfdb_test_video/` (no se commitean; se regeneran con un comando). A ojo, cada fase cae donde la define GolfDB: el toe-up con la varilla cerca de la horizontal, los mid con el brazo adelantado horizontal, el impacto con la cabeza del palo en la pelota.
+
+### 11.3 Qué aprendimos
+
+1. **La pose de un video de celular a 30 fps alcanza** para seguir el cuerpo entero en todas las fases, incluso en el top, donde los brazos cruzan el tronco. Pregunta respondida: sí se captura el movimiento.
+2. **Las 8 fases salen sin modelo entrenado**, solo con la altura y la velocidad de las manos. SwingNet queda como verificación y como plan B; para la app, la heurística es más barata (no hay que portar un modelo a Core ML) y se corrige a mano cuando falla.
+3. **La vista manda.** En diagonal, el stance proyectado mide 4 px y el brazo adelantado se identifica mal. Las métricas de frente y de perfil solo valen en su vista; el detector de vista existe justamente para rechazar o avisar cuando el encuadre no es limpio. Para el dueño: filmar de perfil limpio (cámara detrás de las manos, mirando al objetivo) o de frente limpio, nunca en diagonal.
+4. **30 fps es poco.** En este amateur el downswing son 19 frames; en un pro serían 8. Para el impacto y el tempo, 120 o 240 fps.
+5. **Lo que se mide es 2D y relativo**: inclinaciones en grados proyectados y desplazamientos en largos de torso. Sirve para comparar swings del mismo golfista desde la misma vista, que es lo que el informe de §9 necesita.
+
+### 11.4 Qué falta para cerrar esta validación
+
+- Un video de perfil del dueño (y uno de frente), 120 o 240 fps, cámara quieta: correr el prototipo y mirar si las fases y las métricas de perfil (early extension, pérdida de postura, over the top) salen razonables. Es lo único que esta sesión no pudo hacer: no hay ningún video de perfil accesible.
+- Etiquetas humanas de las fases en 10–20 swings, para medir la heurística con el mismo criterio que GolfDB (frame correcto ± 1 a 30 fps).
+- Probar la heurística con swings de práctica antes del real, con un zurdo y con clips sin pausa en el top.
+
+## 12. Plan por etapas
 
 Cada etapa tiene un criterio de salida medible. Ninguna necesita cambios en la base de Galf hasta la E3.
 
@@ -397,7 +441,7 @@ Cada etapa tiene un criterio de salida medible. Ninguna necesita cambios en la b
 
 Lo que no está en el plan a propósito: 3D, comparación con pros, análisis de putts, análisis en vivo entre golpe y golpe (lo prohíben las reglas, §7).
 
-## 12. Riesgos y trampas
+## 13. Riesgos y trampas
 
 - **Quién apoya el teléfono.** Es el riesgo número uno y solo se despeja jugando una partida con el prototipo. Si resulta insoportable, el plan B es filmar solo las salidas (tee de cada hoyo, ~14 swings con driver o madera por vuelta) y usar el range para el resto.
 - **"100 swings" son 40.** Con ~40 swings completos por vuelta, una partida puede no alcanzar para una afirmación con respaldo en una vista; el informe tiene que poder acumular partidas.
@@ -411,17 +455,17 @@ Lo que no está en el plan a propósito: 3D, comparación con pros, análisis de
 - **El set de evaluación se saltea.** Sin él, el informe es una opinión con formato de estadística. Es la etapa que más tienta saltar y la que hace real la recomendación.
 - **Haiku 4.5** tiene fecha de retiro posible en dos semanas; **Sonnet 5** ya es legacy. Construir sobre Sonnet 5.5 u Opus 5.5.
 
-## 13. Preguntas para el dueño
+## 14. Preguntas para el dueño
 
-1. ¿Trípode chico, clip en el carro, o un amigo? Determina la vista posible y cuántos swings por vuelta se filman de verdad.
-2. ¿Vista de frente o desde atrás como primera? De frente se ven sway, giro y brazo adelantado; desde atrás, plano, early extension y postura (detalle en §5).
+1. ~~¿Trípode chico, clip en el carro, o un amigo?~~ El dueño pidió no ocuparse de esto por ahora (2026-10-02).
+2. ¿Vista de frente o desde atrás como primera? El dueño respondió "lateral" (2026-10-02). Queda por confirmar cuál de las dos es: **de perfil** (down-the-line: la cámara detrás de las manos mirando al objetivo, el golfista de costado) o **de frente** (face-on: la cámara mira el pecho). El prototipo de §11 acepta las dos y detecta cuál es; de frente se ven sway, giro y brazo adelantado; de perfil, plano, early extension y postura (detalle en §5).
 3. ¿Tiene Apple Watch y de qué modelo? Series 8 o Ultra en adelante habilitan el acelerómetro a 800 Hz.
 4. ¿Hay un Mac disponible para compilar (Xcode)? Sin Mac no hay app nativa.
 5. ¿Está dispuesto a marcar el resultado de cada golpe con un toque? Sin eso no hay "que hace que Y", solo "hacés X seguido".
 6. ¿Conoce un instructor que etiquete 150–300 swings? Es el costo real de "recomendaciones REALES".
 7. ¿El video y el informe los ve el grupo o solo cada uno?
 
-## 14. Fuentes
+## 15. Fuentes
 
 Todas accedidas el 2026-09-30. El proxy de la sesión bloquea `apple.com`, `support.apple.com`, `apple.github.io`, `ai.google.dev`, `supabase.com`, `vercel.com`, `webkit.org`, `developer.mozilla.org`, `platform.openai.com`, `developers.openai.com`, `arxiv.org` y sus espejos, `openaccess.thecvf.com`, PubMed, Wikipedia, `web.archive.org`, `apps.apple.com`, `mytpi.com`, `usga.org`, `randa.org`, `aag.org.ar`, `tourtempo.com` y todos los sitios de productos (Sportsbox, HackMotion, V1, OnForm, Swing Profile, Golfshot, 18Birdies, deWiz, Arccos, Shot Scope, SwingVision, GolfFix, Uneekor, Foresight). Donde se pudo se usó el repositorio fuente en GitHub, el conector MCP de documentación o el extracto del buscador, marcado **(snippet)**; un medio en lugar de la primaria queda marcado **(terciaria)**.
 

@@ -116,8 +116,10 @@ Conclusiones que condicionan cualquier implementación:
 - El riesgo número uno es quién apoya el teléfono en cada golpe; ningún producto documenta ese flujo. El plan arranca en el driving range con trípode (E0) y llega a la cancha en E3.
 - Sin un set de 150–300 swings etiquetados por un instructor, el informe es una opinión con formato de estadística. No hay evidencia publicada de que el feedback automático por pose baje el hándicap de un amateur.
 
-- [ ] Decisiones del dueño antes de la E0 (sección 13 del documento): trípode/clip/amigo, vista inicial (frente o atrás), modelo de Apple Watch, Mac disponible para Xcode, marcar el resultado de cada golpe con un toque, instructor para etiquetar, visibilidad del video en el grupo
+- [ ] Decisiones del dueño antes de la E0 (sección 14 del documento): trípode/clip/amigo, vista inicial (frente o atrás), modelo de Apple Watch, Mac disponible para Xcode, marcar el resultado de cada golpe con un toque, instructor para etiquetar, visibilidad del video en el grupo
 - [ ] Al implementar, migrar `GALF_VISION_MODEL` a `claude-sonnet-5-5` (Sonnet 5 figura como legacy en la doc de Anthropic, mismo precio). Aplica también a la lectura de tarjetas de hoy
+- [x] **Validación 1** (2026-10-02, pedido del dueño: "primero asegurémonos de poder, a partir de una grabación, tener los movimientos capturados"; vista lateral; sin preocuparse por quién apoya el teléfono ni por Galf): prototipo descartable `prototypes/swing-lab/` (Python: MediaPipe Pose + heurística de fases + métricas por vista + SwingNet como segunda opinión). Sobre el video de muestra de GolfDB (30 fps, diagonal): pose en el 100 % de los frames, las 8 fases donde las define GolfDB, tempo 1,95:1, métricas con aviso por vista diagonal. Detalle en la sección 11 del documento
+- [ ] Validación 1, parte del dueño: filmar un swing **de perfil limpio** (cámara detrás de las manos mirando al objetivo, cuerpo entero, trípode, 120 o 240 fps) y otro de frente, y correr `prototypes/swing-lab/analyze.py` en una Mac (README). Confirmar qué quiere decir "lateral": de perfil (down-the-line) o de frente (face-on)
 
 ## Deuda técnica conocida
 
