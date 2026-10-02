@@ -15,7 +15,7 @@ Dos correcciones al encuadre del pedido, con datos:
 
 Lo que hace que la recomendación sea **real** no es el modelo de visión sino cuatro condiciones que la app tiene que garantizar:
 
-1. **Misma vista en todos los swings que se comparan.** Un ángulo medido desde atrás no se compara con uno medido de frente. Los ángulos de un video 2D son proyecciones y cambian con la posición de la cámara.
+1. **Misma vista en todos los swings que se comparan.** Un ángulo medido de perfil no se compara con uno medido de frente. Los ángulos de un video 2D son proyecciones y cambian con la posición de la cámara.
 2. **Medición determinística antes que narración.** Los números (tempo, inclinación, desplazamiento de la cabeza, ángulo del brazo adelantado) los calcula la app desde la pose, siempre igual. Claude clasifica fallas visibles a partir de frames y números, con un catálogo cerrado y evidencia obligatoria, y al final solo redacta. Nunca cuenta ni mide.
 3. **Suficientes swings evaluables y el resultado de cada golpe.** "En 15 golpes hiciste X" exige que X aparezca en 15 de los ~40 swings de la misma vista con calidad suficiente. "Que hace que Y" exige saber cómo salió cada pelota (slice, hook, tope, gordo), que se captura con un toque después del golpe. Sin eso, lo máximo honesto es "hacés X seguido".
 4. **Un set de evaluación etiquetado por un instructor** (150–300 swings del grupo) antes de mostrarle un informe a alguien. Es lo que separa "el modelo dice" de "la app acierta 7 de cada 10 veces cuando dice esto".
@@ -46,7 +46,7 @@ Consecuencias: el catálogo de fallas aplica a esos ~40 (el juego corto y el put
 
 Esto es diseño propio, atado a las restricciones que la documentación impone (pantalla encendida, cámara quieta, reglas de golf).
 
-1. **Antes de salir**: se abre la partida en Galf (ya existe) y se elige la vista de la vuelta, **de frente** (*face-on*) o **desde atrás** (*down-the-line*). Una sola por partida, para que los swings sean comparables.
+1. **Antes de salir**: se abre la partida en Galf (ya existe) y se elige la vista de la vuelta, **de frente** (*face-on*) o **de perfil** (*down-the-line*: la cámara detrás de las manos, sobre la línea al objetivo). Una sola por partida, para que los swings sean comparables.
 2. **En cada golpe** (salvo putts): el teléfono va en un trípode chico o en un clip del carro, a 2–3 m del golfista, encuadrando el cuerpo entero. La app graba continuo por hoyo con la pantalla encendida (la cámara no funciona en segundo plano, §4.6) y detecta sola cada swing (§4.3); no hay que tocar nada. Si hay Apple Watch, el reloj marca el instante del impacto.
 3. **Después del golpe**: al preparar el siguiente, la app pregunta "¿Cómo salió el anterior?" con seis botones grandes: derecho, slice, hook, tope, gordo, otro. Palo opcional. Se puede corregir después.
 4. **Durante la vuelta no se mira nada.** Las reglas permiten grabar pero no mirar el video de la propia vuelta para ayudarse a ejecutar un golpe (§7). El informe llega al firmar la tarjeta.
@@ -105,10 +105,10 @@ Diseño propio sobre los puntos de §4.2. Todas se calculan igual para todos los
 |---|---|---|---|
 | Tempo (backswing : downswing) y duración total | ambas | frames entre address, top e impacto | ritmo, apuro en la transición |
 | Desplazamiento lateral de la cabeza entre address, top e impacto (fracción del alto del cuerpo) | frente | nariz o punto medio de las orejas | sway / slide |
-| Inclinación del tronco en address vs impacto | atrás | ángulo cadera–hombros vs vertical | early extension, pérdida de postura |
+| Inclinación del tronco en address vs impacto | perfil | ángulo cadera–hombros vs vertical | early extension, pérdida de postura |
 | Ángulo del brazo adelantado en el top | frente | hombro–codo–muñeca del brazo izquierdo (diestro) | brazo que se dobla ("chicken wing" es en el impacto) |
 | Rotación aparente de hombros y caderas en el top | frente | ancho proyectado hombro–hombro y cadera–cadera respecto a address | poco giro, giro de caderas exagerado |
-| Flexión de rodillas en address y en el top | atrás y frente | cadera–rodilla–tobillo | pierna que se estira |
+| Flexión de rodillas en address y en el top | perfil y frente | cadera–rodilla–tobillo | pierna que se estira |
 | Calidad del clip | ambas | confianza media de los puntos, cuerpo completo en cuadro, cámara quieta | descarta el swing del agregado |
 
 La rotación real de hombros y caderas necesita 3D; en 2D solo se ve el acortamiento proyectado. Con `VNDetectHumanBodyPose3DRequest` (iOS 17) se puede intentar, sabiendo que sin LiDAR la escala es supuesta y que Apple no publica su precisión angular.
@@ -138,9 +138,9 @@ El proxy de la sesión bloquea arxiv.org, PubMed, mytpi.com y los sitios de los 
 
 ### 5.1 Segmentar el swing en fases: lo que hay publicado
 
-- **GolfDB / SwingNet** (McNally et al., CVPR Workshops 2019; [paper](https://openaccess.thecvf.com/content_CVPRW_2019/papers/CVSports/McNally_GolfDB_A_Video_Database_for_Golf_Swing_Sequencing_CVPRW_2019_paper.pdf), [repo](https://github.com/wmcnally/golfdb)): 1.400 clips de 580 videos de YouTube de **246 golfistas profesionales** (ningún amateur); 585 desde atrás, 461 de frente, 354 otras vistas; 758 a velocidad real (720p, 30 fps) y 642 en cámara lenta; 68 % con driver (conteos hechos sobre el archivo de anotaciones del repo). Ocho eventos: Address, Toe-up, Mid-backswing, Top, Mid-downswing, Impact, Mid-follow-through, Finish. Modelo: MobileNetV2 + LSTM bidireccional, entrada 160×160, 9 clases. Precisión: 76,1 % de eventos correctos en el paper y 71,5 % con los pesos publicados, con tolerancia de ~1 frame a 30 fps (verificado en `util.py` del repo). Licencia del código **CC BY-NC 4.0**; los videos no se redistribuyen. **Requiere el clip ya recortado a un solo swing**: no detecta el swing dentro de un video largo (eso lo resuelve §4.3).
+- **GolfDB / SwingNet** (McNally et al., CVPR Workshops 2019; [paper](https://openaccess.thecvf.com/content_CVPRW_2019/papers/CVSports/McNally_GolfDB_A_Video_Database_for_Golf_Swing_Sequencing_CVPRW_2019_paper.pdf), [repo](https://github.com/wmcnally/golfdb)): 1.400 clips de 580 videos de YouTube de **246 golfistas profesionales** (ningún amateur); 585 de perfil, 461 de frente, 354 otras vistas; 758 a velocidad real (720p, 30 fps) y 642 en cámara lenta; 68 % con driver (conteos hechos sobre el archivo de anotaciones del repo). Ocho eventos: Address, Toe-up, Mid-backswing, Top, Mid-downswing, Impact, Mid-follow-through, Finish. Modelo: MobileNetV2 + LSTM bidireccional, entrada 160×160, 9 clases. Precisión: 76,1 % de eventos correctos en el paper y 71,5 % con los pesos publicados, con tolerancia de ~1 frame a 30 fps (verificado en `util.py` del repo). Licencia del código **CC BY-NC 4.0**; los videos no se redistribuyen. **Requiere el clip ya recortado a un solo swing**: no detecta el swing dentro de un video largo (eso lo resuelve §4.3).
 - Mejoras sobre GolfDB: 78,1 % con un encoder transformer temporal ([CS231n 2025](https://cs231n.stanford.edu/2025/papers/cs231n_final_report__Revised%20-%20Yanming%20Zhu.pdf)); 82,1 % desde el movimiento reconstruido de un reloj ([arXiv 2606.22876](https://arxiv.org/abs/2606.22876)). Ambas **(snippet)**.
-- **CaddieSet** (CVPR Workshops 2025, [repo](https://github.com/damilab/CaddieSet), licencia **MIT**): 1.757 tiros de 8 golfistas (924 de frente, 833 desde atrás) filmados junto a un launch monitor; por tiro, los 8 eventos, 17 puntos de pose y 22 métricas interpretables (ángulo de hombros, posición de la cabeza, rotación de caderas, transferencia de peso, ángulo de columna) más los datos de la pelota. Es el dataset más parecido a lo que este proyecto necesita y su licencia permite usarlo.
+- **CaddieSet** (CVPR Workshops 2025, [repo](https://github.com/damilab/CaddieSet), licencia **MIT**): 1.757 tiros de 8 golfistas (924 de frente, 833 de perfil) filmados junto a un launch monitor; por tiro, los 8 eventos, 17 puntos de pose y 22 métricas interpretables (ángulo de hombros, posición de la cabeza, rotación de caderas, transferencia de peso, ángulo de columna) más los datos de la pelota. Es el dataset más parecido a lo que este proyecto necesita y su licencia permite usarlo.
 - **GolfPose** (ICPR 2024, [repo](https://github.com/MingHanLee/GolfPose)): dataset 2D y 3D con puntos del golfista **y del palo**; licencia propia que permite entrenar modelos comerciales pero no redistribuir los datos; se pide por correo.
 - **3D desde un solo video**: MotionBERT (37,2 mm de error en Human3.6M, Apache 2.0), VideoPose3D (46,8 mm, CC BY-NC) y WHAM (MIT) existen y son usables. Sportsbox publica que su modelo propio mide giro e inclinación de pecho y pelvis con ~2° de diferencia contra un sistema electromagnético, pero con trípode a ≤1,07 m de altura y a ≤3,7 m del golfista ([help.sportsbox.ai](https://help.sportsbox.ai/sportsbox-ai-accuracy), **(snippet)**). Un modelo genérico sobre video de cancha con blur no tiene esa validación; un estudio de DTU (Ingwersen 2023, 4 golfistas con Qualisys, **(snippet)**) muestra que los modelos genéricos flaquean en movimiento rápido.
 
@@ -154,16 +154,16 @@ TPI (Titleist Performance Institute) define 12 características del swing. Son e
 
 | Falla | Qué es (TPI) | Vista | Fase | Medible en 2D |
 |---|---|---|---|---|
-| Early Extension | la pelvis se acerca a la pelota en la bajada; "67 % de más de 90.000 golfistas testeados por TPI la tienen; 99 % de los pros no" | atrás | bajada e impacto | **Sí, la mejor candidata**: desplazamiento de las caderas respecto de una vertical fija en address |
+| Early Extension | la pelvis se acerca a la pelota en la bajada; "67 % de más de 90.000 golfistas testeados por TPI la tienen; 99 % de los pros no" | perfil | bajada e impacto | **Sí, la mejor candidata**: desplazamiento de las caderas respecto de una vertical fija en address |
 | Sway | movimiento lateral excesivo del tren inferior alejándose del objetivo en la subida | frente | subida y top | **Sí**: desplazamiento del centro de caderas, normalizado por el ancho de stance |
 | Slide | movimiento lateral excesivo hacia el objetivo en la bajada | frente | bajada e impacto | Sí, separándolo del desplazamiento normal (~10 cm según TPI) |
-| Loss of Posture | alteración de los ángulos de address durante el swing; "causa el block a la derecha y el hook a la izquierda" | atrás | impacto vs address | Sí: cambio del ángulo caderas–hombros respecto de la vertical |
+| Loss of Posture | alteración de los ángulos de address durante el swing; "causa el block a la derecha y el hook a la izquierda" | perfil | impacto vs address | Sí: cambio del ángulo caderas–hombros respecto de la vertical |
 | Reverse Spine Angle | tronco inclinado hacia el objetivo al top; "una de las causas principales de dolor lumbar" | frente | top | Sí: inclinación de la línea caderas–hombros al top |
 | Chicken Winging | el codo adelantado se dobla en el impacto | frente | impacto y follow-through | Sí para el codo (hombro–codo–muñeca); no para la muñeca |
 | Hanging Back | falta de transferencia de peso; "lo normal es estar unos 10 cm más cerca del objetivo en el impacto que en address" | frente | impacto | Parcial: caderas y cabeza como proxy, sin plataformas de fuerza |
-| Flat Shoulder Plane | los hombros giran en un plano más horizontal que la columna | atrás | top | Parcial: la línea de hombros desde atrás queda escorzada |
-| Over the Top | el palo baja por fuera del plano; "una de las causas principales del slice" | atrás | transición | Parcial: posición de las manos respecto del plano; mejora con puntos del palo (GolfPose) |
-| S-Posture y C-Posture | arco lumbar excesivo, u hombros caídos, en address | atrás | address | Baja: la pose 2D no tiene pelvis anterior/posterior ni columna torácica |
+| Flat Shoulder Plane | los hombros giran en un plano más horizontal que la columna | perfil | top | Parcial: la línea de hombros de perfil queda escorzada |
+| Over the Top | el palo baja por fuera del plano; "una de las causas principales del slice" | perfil | transición | Parcial: posición de las manos respecto del plano; mejora con puntos del palo (GolfPose) |
+| S-Posture y C-Posture | arco lumbar excesivo, u hombros caídos, en address | perfil | address | Baja: la pose 2D no tiene pelvis anterior/posterior ni columna torácica |
 | Casting y Scooping | liberación temprana de las muñecas; muñeca "cupped" en el impacto | ambas | bajada e impacto | Baja sin el palo; media con detección del palo; alta solo con sensor de muñeca |
 
 Las siete primeras son las que un iPhone en trípode mide con confianza alta o media-alta, y entre ellas está la más frecuente (early extension). Otras prevalencias que circulan (50 % pierden postura, 56 % hacen casting) solo aparecen en terceros **(sin verificar)**.
@@ -205,7 +205,7 @@ Sitios oficiales bloqueados por el proxy; datos por **(snippet)** de la página 
 
 | Producto | Qué hace | Detecta el swing solo | 3D de un video | Precio | En cancha |
 |---|---|---|---|---|---|
-| [Sportsbox AI 3DGolf](https://help.sportsbox.ai/how-do-i-set-up-my-camera-to-record-a-session) | 3D desde un video de celular; giro, sway, inclinación, X-factor; comparación con el tour | Sí, con guía por voz | Sí (frente y atrás) | 9,16/mes; 5 swings gratis por mes | No lo documenta; trípode a la cintura, ≤3,7 m |
+| [Sportsbox AI 3DGolf](https://help.sportsbox.ai/how-do-i-set-up-my-camera-to-record-a-session) | 3D desde un video de celular; giro, sway, inclinación, X-factor; comparación con el tour | Sí, con guía por voz | Sí (frente y perfil) | 9,16/mes; 5 swings gratis por mes | No lo documenta; trípode a la cintura, ≤3,7 m |
 | [OnForm](https://onform.com/blog/onform-launches-fast-reliable-and-accessible-markerless-3d-motion-capture-for-golf/) | 3D sin marcadores con un solo iPhone de frente, 120/240 fps, iOS 18+, offline; publica una "model card" de precisión | Sí, recorta cada swing en su clip | Sí (frente) | 9,99 o 14,99/mes | Práctica |
 | [Swing Profile](https://www.swingprofile.com/swing-analysis-software/) | Auto-detección y grabación manos libres, replay en cámara lenta tras cada golpe, recorte a 2 s, detección de sway de cabeza y columna | Sí | No | 7,99/mes | Range, teléfono en soporte |
 | [V1 Golf](https://v1sports.com/athletes/buy-v1-golf-app/) | Captura, líneas, comparación lado a lado, envío al coach | Por voz ("V1 Start") | No | 9,99/mes | Práctica |
@@ -386,7 +386,7 @@ RLS como `hole_scores` (participantes y quien comparte grupo, ADR-0002), con una
 
 ## 11. Validación 1 (2026-10-02): de una grabación a movimiento, fases y métricas
 
-Pregunta del dueño: dado un video de un swing (vista lateral), ¿podemos usar un modelo que detecte los movimientos y la calidad del swing? Prototipo descartable en `prototypes/swing-lab/` (Python; README con cómo correrlo en una Mac con un video propio), corrido en esta sesión sobre el único video de golf con licencia conocida y accesible desde acá: `test_video.mp4` del repo de GolfDB (354×492, 30 fps, 8,8 s, 264 frames, un golfista amateur, cámara en diagonal entre "de frente" y "desde atrás"). No se encontró ningún video de perfil (down-the-line) de libre acceso; CaddieSet publica métricas, no videos.
+Pregunta del dueño: dado un video de un swing (vista lateral), ¿podemos usar un modelo que detecte los movimientos y la calidad del swing? Prototipo descartable en `prototypes/swing-lab/` (Python; README con cómo correrlo en una Mac con un video propio), corrido en esta sesión sobre el único video de golf con licencia conocida y accesible desde acá: `test_video.mp4` del repo de GolfDB (354×492, 30 fps, 8,8 s, 264 frames, un golfista amateur, cámara en diagonal entre "de frente" y "de perfil"). No se encontró ningún video de perfil (down-the-line) de libre acceso; CaddieSet publica métricas, no videos.
 
 ### 11.1 Qué se corrió
 
@@ -410,21 +410,25 @@ Pregunta del dueño: dado un video de un swing (vista lateral), ¿podemos usar u
 | Rodillas | flexión 134° / 148° en address (izquierda / derecha) |
 | Caderas | sway 0,06 torsos en el top; sin stance de referencia (los tobillos se superponen en la diagonal) |
 | Brazo adelantado y giro aparente | calculados pero marcados "baja confianza": en diagonal el brazo adelantado se confunde y el ancho proyectado no mide giro |
-| SwingNet | pendiente: al cerrar este commit PyTorch todavía se estaba instalando (los wheels de PyPI traen CUDA, varios GB); `analyze.py --swingnet` queda listo y la comparación se agrega en el commit siguiente |
+| SwingNet (frame y confianza) | address 74 (0,10) · toe-up 86 (0,59) · mid-backswing 98 (0,80) · top 114 (0,72) · mid-downswing 132 (0,87) · impacto 143 (0,98) · mid-follow-through 151 (0,77) · finish 236 (0,16). ~10 s de proceso en CPU |
+| Heurística vs SwingNet | toe-up +1, mid-backswing +3, mid-downswing −2, impacto −3, mid-follow-through −5 frames: las fases de movimiento coinciden a 0,1 s o menos. Address +10, top +7 y finish −60: donde el golfista está quieto, cada método elige otro frame de la pausa (SwingNet con confianza 0,10 y 0,16 en address y finish) |
+| Tempo según SwingNet | 1,38:1 (address 74, top 114, impacto 143) contra 1,95:1 de la heurística: la diferencia es solo de definición de address y top cuando hay waggle y pausa |
 
 Los ocho frames clave con el esqueleto están en `prototypes/swing-lab/out/golfdb_test_video/` (no se commitean; se regeneran con un comando). A ojo, cada fase cae donde la define GolfDB: el toe-up con la varilla cerca de la horizontal, los mid con el brazo adelantado horizontal, el impacto con la cabeza del palo en la pelota.
 
 ### 11.3 Qué aprendimos
 
 1. **La pose de un video de celular a 30 fps alcanza** para seguir el cuerpo entero en todas las fases, incluso en el top, donde los brazos cruzan el tronco. Pregunta respondida: sí se captura el movimiento.
-2. **Las 8 fases salen sin modelo entrenado**, solo con la altura y la velocidad de las manos. SwingNet queda como verificación y como plan B; para la app, la heurística es más barata (no hay que portar un modelo a Core ML) y se corrige a mano cuando falla.
+2. **Las 8 fases salen sin modelo entrenado**, solo con la altura y la velocidad de las manos, y SwingNet las confirma: en las cinco fases de movimiento los dos métodos difieren 1 a 5 frames (0,03 a 0,17 s a 30 fps). Donde difieren más (address, top, finish) es porque el golfista está quieto y la definición del frame es arbitraria; SwingNet mismo lo dice con confianzas de 0,10 y 0,16. Para la app, la heurística es más barata (no hay que portar un modelo a Core ML) y se corrige a mano cuando falla; SwingNet queda como verificación.
+   - **Sesgo conocido del impacto**: la heurística toma el punto más bajo de las manos, que llega 2 o 3 frames (a 30 fps) antes de que la cabeza del palo toque la pelota, porque el palo viene detrás de las manos. Mirando los frames 138 a 145, el impacto real está en 142 o 143, donde lo pone SwingNet (confianza 0,98). A 240 fps y con el transitorio del audio (§4.3) esto se resuelve; a 30 fps conviene corregir +2 frames o usar SwingNet para el impacto.
+   - **El tempo depende de la definición**: con waggle antes del takeaway y pausa en el top, la relación backswing:downswing sale 1,95:1 o 1,38:1 según dónde se ponga el address y el top. La app tiene que fijar una definición (propuesta: address = último frame quieto con las manos bajo la cadera; top = último frame antes de que las manos bajen) y comparar al golfista consigo mismo, nunca contra números de otra fuente.
 3. **La vista manda.** En diagonal, el stance proyectado mide 4 px y el brazo adelantado se identifica mal. Las métricas de frente y de perfil solo valen en su vista; el detector de vista existe justamente para rechazar o avisar cuando el encuadre no es limpio. Para el dueño: filmar de perfil limpio (cámara detrás de las manos, mirando al objetivo) o de frente limpio, nunca en diagonal.
 4. **30 fps es poco.** En este amateur el downswing son 19 frames; en un pro serían 8. Para el impacto y el tempo, 120 o 240 fps.
 5. **Lo que se mide es 2D y relativo**: inclinaciones en grados proyectados y desplazamientos en largos de torso. Sirve para comparar swings del mismo golfista desde la misma vista, que es lo que el informe de §9 necesita.
 
 ### 11.4 Qué falta para cerrar esta validación
 
-- Un video de perfil del dueño (y uno de frente), 120 o 240 fps, cámara quieta: correr el prototipo y mirar si las fases y las métricas de perfil (early extension, pérdida de postura, over the top) salen razonables. Es lo único que esta sesión no pudo hacer: no hay ningún video de perfil accesible.
+- Un video **de frente** del dueño (la vista que eligió el 2026-10-02) y, si puede, uno de perfil; 120 o 240 fps, cámara quieta, un swing por clip: correr el prototipo y mirar si las fases y las métricas de frente (sway, slide, reverse spine, brazo adelantado) salen razonables. Es lo que esta sesión no pudo hacer: el único video accesible estaba en diagonal.
 - Etiquetas humanas de las fases en 10–20 swings, para medir la heurística con el mismo criterio que GolfDB (frame correcto ± 1 a 30 fps).
 - Probar la heurística con swings de práctica antes del real, con un zurdo y con clips sin pausa en el top.
 
@@ -458,7 +462,7 @@ Lo que no está en el plan a propósito: 3D, comparación con pros, análisis de
 ## 14. Preguntas para el dueño
 
 1. ~~¿Trípode chico, clip en el carro, o un amigo?~~ El dueño pidió no ocuparse de esto por ahora (2026-10-02).
-2. ¿Vista de frente o desde atrás como primera? El dueño respondió "lateral" (2026-10-02). Queda por confirmar cuál de las dos es: **de perfil** (down-the-line: la cámara detrás de las manos mirando al objetivo, el golfista de costado) o **de frente** (face-on: la cámara mira el pecho). El prototipo de §11 acepta las dos y detecta cuál es; de frente se ven sway, giro y brazo adelantado; de perfil, plano, early extension y postura (detalle en §5).
+2. ~~¿Vista de frente o de perfil como primera?~~ **Decidido: de frente** (2026-10-02). Primero respondió "lateral"; al aclarar que "de perfil" y "desde atrás" son la misma vista (down-the-line) y que de frente la pose es más confiable y se miden más fallas en 2D (sway, slide, reverse spine, brazo adelantado), eligió de frente. El perfil entra segundo (early extension, over the top, postura; detalle en §5). El prototipo de §11 acepta las dos y detecta cuál es.
 3. ¿Tiene Apple Watch y de qué modelo? Series 8 o Ultra en adelante habilitan el acelerómetro a 800 Hz.
 4. ¿Hay un Mac disponible para compilar (Xcode)? Sin Mac no hay app nativa.
 5. ¿Está dispuesto a marcar el resultado de cada golpe con un toque? Sin eso no hay "que hace que Y", solo "hacés X seguido".

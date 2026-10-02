@@ -254,7 +254,7 @@ def detect_view(xy: np.ndarray, address: int) -> tuple[str, float]:
     sho_w = abs(a[L_SHO, 0] - a[R_SHO, 0]) / (torso + 1e-9)
     hip_w = abs(a[L_HIP, 0] - a[R_HIP, 0]) / (torso + 1e-9)
     ratio = (sho_w + hip_w) / 2
-    # de frente los hombros se ven anchos (~0,6-0,8 torsos); desde atrás (perfil)
+    # de frente los hombros se ven anchos (~0,6-0,8 torsos); de perfil (perfil)
     # se superponen (~0,1-0,25); en el medio la cámara está en diagonal
     if ratio >= 0.45:
         return "frente", float(ratio)
@@ -337,7 +337,7 @@ def compute_metrics(xy: np.ndarray, vis: np.ndarray, det: np.ndarray, ev: dict[s
             m["caderas"]["cadera_vs_tobillos_impacto_stance"] = round(
                 float((hips[I, 0] - ankles[I, 0]) * target_sign / stance), 3)
         else:
-            m["caderas"]["nota"] = "tobillos casi superpuestos: no hay stance de referencia (vista diagonal o de atrás)"
+            m["caderas"]["nota"] = "tobillos casi superpuestos: no hay stance de referencia (vista diagonal o de perfil)"
         # cabeza hacia/desde el objetivo
         for name, f in (("top", T), ("impacto", I)):
             m["cabeza"][f"hacia_objetivo_{name}_torsos"] = round(
@@ -355,7 +355,7 @@ def compute_metrics(xy: np.ndarray, vis: np.ndarray, det: np.ndarray, ev: dict[s
                     + ("; en diagonal no sirve" if view == "diagonal" else ""),
         }
     else:
-        # desde atrás: dirección "hacia la pelota" = de la cadera a las manos en address
+        # de perfil: dirección "hacia la pelota" = de la cadera a las manos en address
         ball_sign = 1.0 if (hands[A, 0] - hips[A, 0]) >= 0 else -1.0
         m["pelota"] = "derecha de la imagen" if ball_sign > 0 else "izquierda de la imagen"
         for name, f in (("mid_downswing", MD), ("impacto", I)):

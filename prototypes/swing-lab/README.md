@@ -6,7 +6,7 @@ Qué hace `analyze.py` con un video:
 
 1. Pose por frame con MediaPipe Pose Landmarker (33 puntos, modelo `heavy` por defecto).
 2. Detecta las 8 fases del swing (vocabulario de GolfDB) con una heurística sobre la trayectoria de las manos: address, toe-up, mid-backswing, top, mid-downswing, impacto, mid-follow-through, finish.
-3. Detecta la vista (de frente, desde atrás, o en diagonal) por el ancho proyectado de hombros y caderas.
+3. Detecta la vista (de frente, de perfil, o en diagonal) por el ancho proyectado de hombros y caderas.
 4. Calcula métricas 2D por vista: tempo, cabeza, caderas (sway/slide o early extension), tronco, brazo adelantado, rodillas, y la calidad del clip.
 5. Deja en `out/<video>/`: `pose.csv`, `events.json`, `metrics.json`, `frames/` (8 frames clave con esqueleto), `contact_sheet.jpg`, `hands_speed.png`, `report.md` y, con `--overlay-video`, `overlay.mp4`.
 
@@ -34,11 +34,11 @@ Cómo filmar para que sirva: cámara quieta (trípode o apoyada), cuerpo entero 
 ## Vistas
 
 - **frente** (face-on): la cámara mira el pecho del golfista. Se miden sway y slide de caderas, inclinación del tronco hacia el objetivo (reverse spine), ángulo del brazo adelantado, giro aparente de hombros y caderas, cabeza.
-- **atrás** (down-the-line, el golfista de perfil): la cámara está detrás de las manos mirando al objetivo. Se miden inclinación del tronco en address, top e impacto (pérdida de postura), caderas hacia la pelota (early extension), manos respecto del plano de address (over the top), línea de hombros en el top.
+- **atras** (de perfil, down-the-line): la cámara está detrás de las manos mirando al objetivo. Se miden inclinación del tronco en address, top e impacto (pérdida de postura), caderas hacia la pelota (early extension), manos respecto del plano de address (over the top), línea de hombros en el top.
 - **diagonal**: la cámara quedó entre las dos. Se calculan las métricas de frente con un aviso; conviene volver a filmar.
 
 Todo es 2D: los ángulos son proyecciones y dependen de dónde está la cámara. Solo comparar swings de la misma vista.
 
 ## Licencias
 
-MediaPipe: Apache 2.0. GolfDB / SwingNet (`golfdb_mobilenetv2.py`, pesos `swingnet_1800.pth.tar`): CC BY-NC 4.0, uso no comercial, solo para este prototipo. El video `samples/golfdb_test_video.mp4` es el `test_video.mp4` del repo de GolfDB (no se commitea; `samples/` está en `.gitignore`).
+MediaPipe: Apache 2.0. GolfDB / SwingNet (`golfdb_mobilenetv2.py`, pesos `swingnet_1800.pth.tar`): CC BY-NC 4.0, uso no comercial, solo para este prototipo. El video `samples/golfdb_test_video.mp4` es el `test_video.mp4` del repo de GolfDB (no se commitea: está en `.gitignore`; `get_models.sh` no lo baja, se saca del repo de GolfDB). Los videos propios en `samples/` sí se commitean.
