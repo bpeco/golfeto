@@ -36,3 +36,7 @@ insert into holes (course_version_id, number, par, stroke_index) values
 insert into tee_sets (course_version_id, name, course_rating, slope)
   values ((select id from v where k = 'ver'), 'Caballeros', 70.7, 118);
 commit;
+
+-- Después (2026-10-09): club igual al nombre para que la app no muestre "Sierra de los Padres — Sierra de los Padres Golf Club"
+-- (la UI oculta el club solo cuando coincide con el nombre).
+update courses set club = 'Sierra de los Padres' where id = '283b83a9-3d40-4807-929c-a90b565f0f55' and club = 'Sierra de los Padres Golf Club';
