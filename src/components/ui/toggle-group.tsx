@@ -5,23 +5,34 @@ import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group
 import { Toggle as TogglePrimitive } from "@base-ui/react/toggle";
 import { cn } from "@/lib/utils";
 
+type Size = "default" | "sm";
+
 /** Grupo segmentado con reglas (como las columnas de la tarjeta), no píldoras sueltas. */
-export function ToggleGroup({ className, ...props }: ToggleGroupPrimitive.Props) {
+export function ToggleGroup({ className, size = "default", ...props }: ToggleGroupPrimitive.Props & { size?: Size }) {
   return (
     <ToggleGroupPrimitive
       data-slot="toggle-group"
-      className={cn("flex w-full divide-x divide-input overflow-hidden rounded-md border border-input bg-card", className)}
+      className={cn(
+        "flex w-full divide-x divide-input rounded-md border border-input bg-card",
+        // El chico no recorta: el área táctil de sus ítems sale por arriba y por abajo.
+        size === "default" && "overflow-hidden",
+        className,
+      )}
       {...props}
     />
   );
 }
 
-export function ToggleGroupItem({ className, ...props }: TogglePrimitive.Props) {
+export function ToggleGroupItem({ className, size = "default", ...props }: TogglePrimitive.Props & { size?: Size }) {
   return (
     <TogglePrimitive
       data-slot="toggle-group-item"
       className={cn(
-        "flex min-h-tap flex-1 items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-muted-foreground",
+        "flex flex-1 items-center justify-center gap-2 font-semibold text-muted-foreground",
+        size === "default"
+          ? "min-h-tap px-3 py-2 text-sm"
+          : // 32 px a la vista, 44 de área táctil (6 px de más arriba y abajo).
+            "relative h-8 px-3 text-xs first:rounded-l-[calc(var(--radius-md)-1px)] last:rounded-r-[calc(var(--radius-md)-1px)] after:absolute after:inset-x-0 after:-inset-y-1.5",
         "transition-colors duration-120 outline-none select-none",
         "hover:bg-accent focus-visible:relative focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
         "data-pressed:bg-foreground data-pressed:text-background",
@@ -44,6 +55,7 @@ export function Segmented<T extends string>({
   label,
   className,
   disabled,
+  size = "default",
 }: {
   value: T;
   onValueChange: (value: T) => void;
@@ -51,6 +63,8 @@ export function Segmented<T extends string>({
   label: string;
   className?: string;
   disabled?: boolean;
+  /** `sm`: 32 px a la vista (44 de área táctil), para una opción secundaria al lado de un botón. */
+  size?: Size;
 }) {
   return (
     <ToggleGroup
@@ -62,9 +76,10 @@ export function Segmented<T extends string>({
         if (picked) onValueChange(picked as T);
       }}
       className={className}
+      size={size}
     >
       {options.map((o) => (
-        <ToggleGroupItem key={o.value} value={o.value} disabled={o.disabled}>
+        <ToggleGroupItem key={o.value} value={o.value} disabled={o.disabled} size={size}>
           {o.label}
         </ToggleGroupItem>
       ))}

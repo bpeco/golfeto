@@ -138,11 +138,12 @@ export function PhotoFlow({
           ) : null,
         )}
       </div>
-      <div className="mt-3 flex items-center gap-3">
-        <span aria-hidden className="text-sm text-muted-foreground">
+      <div className="mt-4 flex items-center gap-2">
+        <span aria-hidden className="text-xs text-muted-foreground">
           Anotada en
         </span>
         <Segmented
+          size="sm"
           className="grid w-auto grid-cols-2"
           label="Tarjeta anotada en"
           value={notation}
