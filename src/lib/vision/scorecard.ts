@@ -11,7 +11,7 @@ export const scorecardExtractionSchema = z.object({
       notation: z.enum(["golpes", "sobrePar"]),
       /** Lo escrito por columna en el orden de la tarjeta (sobre el par: 0, 1, -1…); null si la celda está vacía o ilegible. */
       values: z.array(z.number().int().nullable()),
-      /** Total escrito en la tarjeta, si hay (en la misma notación que la fila). */
+      /** Total escrito en la tarjeta, si hay (puede estar en golpes aunque la fila esté sobre el par). */
       writtenTotal: z.number().int().nullable(),
       /** Celdas dudosas (índice desde 0) para que el usuario las revise. */
       uncertain: z.array(z.number().int()),
@@ -47,6 +47,7 @@ export async function extractScorecard(
       "- golpes: los golpes del hoyo (3, 4, 5, 6…), cerca del par.",
       "- sobrePar: cuántos golpes sobre el par (0, 1, 2, -1…), a veces con signo + o −, a veces un punto o raya para el par. Indicios: ceros, negativos, signos, o casi todo 0-3 en hoyos par 4 y 5. Un 0 nunca son golpes.",
       "En sobrePar, values lleva el número escrito tal cual (par = 0, bogey = 1, birdie = -1); no sumes el par, eso lo hace la app.",
+      "Los subtotales y el total escritos (Ida/Vuelta/Tot) suelen estar en golpes aunque la fila esté sobre el par: si suma de la fila + par del nueve = subtotal, es sobrePar. Usalos para decidir la notación y para verificar: si un nueve no cierra, marcá en uncertain las celdas de ese nueve que leíste con dudas (tachadas, sobrescritas, borrosas).",
       ctx.playerNames.length ? `Jugadores de esta partida: ${ctx.playerNames.join(", ")}. Si el nombre escrito es una abreviatura o apodo, dejalo tal como está escrito; no lo reemplaces.` : "",
       "Si un número es dudoso, ponelo igual y marcá su índice en uncertain. Si una celda tiene una X, o un guion en una fila de golpes, es null.",
       "notes: dejalo vacío. Escribí solo si hay algo que quien subió la foto tiene que saber y no se ve en las filas (p. ej. falta media tarjeta o hay una fila sin nombre), en una oración corta. No describas lo que leíste.",
