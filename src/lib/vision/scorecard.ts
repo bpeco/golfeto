@@ -1,17 +1,16 @@
 import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { anthropic, VISION_MODEL, type ImageInput } from "./client";
+import type { Notation } from "./notation";
 
 export const scorecardExtractionSchema = z.object({
   rows: z.array(
     z.object({
       /** Nombre tal como está escrito en la fila. */
       name: z.string(),
-      /** Cómo anotó este jugador: golpes del hoyo o cuántos sobre el par. */
-      notation: z.enum(["golpes", "sobrePar"]),
       /** Lo escrito por columna en el orden de la tarjeta (sobre el par: 0, 1, -1…); null si la celda está vacía o ilegible. */
       values: z.array(z.number().int().nullable()),
-      /** Total escrito en la tarjeta, si hay (puede estar en golpes aunque la fila esté sobre el par). */
+      /** Total escrito en la tarjeta, si hay. */
       writtenTotal: z.number().int().nullable(),
       /** Celdas dudosas (índice desde 0) para que el usuario las revise. */
       uncertain: z.array(z.number().int()),
@@ -31,7 +30,7 @@ export type ScorecardExtraction = z.infer<typeof scorecardExtractionSchema>;
  */
 export async function extractScorecard(
   image: ImageInput,
-  ctx: { pars: (number | null)[]; playerNames: string[] },
+  ctx: { holesInRound: number; notation: Notation; playerNames: string[] },
 ): Promise<ScorecardExtraction> {
   const res = await anthropic().messages.parse({
     model: VISION_MODEL,
@@ -41,13 +40,10 @@ export async function extractScorecard(
       "Sos un lector de tarjetas de golf argentinas escritas a mano.",
       "La foto muestra una tarjeta de papel con una fila por jugador y una columna por hoyo (normalmente 1-9, OUT, 10-18, IN, TOTAL).",
       "Devolvé una fila por jugador con lo escrito por hoyo EN ORDEN, ignorando columnas de subtotal (OUT/IN/TOT) y las filas de par, hándicap de hoyo o distancias.",
-      `Se jugaron ${ctx.pars.length} hoyos; values debe tener exactamente ${ctx.pars.length} elementos (null donde no se lee).`,
-      `Par de cada hoyo jugado, en orden: ${ctx.pars.map((p) => p ?? "?").join(", ")}.`,
-      "Cada jugador anota a su manera. Decidí por fila la notación:",
-      "- golpes: los golpes del hoyo (3, 4, 5, 6…), cerca del par.",
-      "- sobrePar: cuántos golpes sobre el par (0, 1, 2, -1…), a veces con signo + o −, a veces un punto o raya para el par. Indicios: ceros, negativos, signos, o casi todo 0-3 en hoyos par 4 y 5. Un 0 nunca son golpes.",
-      "En sobrePar, values lleva el número escrito tal cual (par = 0, bogey = 1, birdie = -1); no sumes el par, eso lo hace la app.",
-      "Los subtotales y el total escritos (Ida/Vuelta/Tot) suelen estar en golpes aunque la fila esté sobre el par: si suma de la fila + par del nueve = subtotal, es sobrePar. Usalos para decidir la notación y para verificar: si un nueve no cierra, marcá en uncertain las celdas de ese nueve que leíste con dudas (tachadas, sobrescritas, borrosas).",
+      `Se jugaron ${ctx.holesInRound} hoyos; values debe tener exactamente ${ctx.holesInRound} elementos (null donde no se lee).`,
+      ctx.notation === "sobrePar"
+        ? "Esta tarjeta está anotada sobre el par: cada celda dice cuántos golpes sobre el par hizo el jugador (0 = par, 1 = bogey, -1 = birdie; un punto o una raya suelen ser 0). Devolvé el número tal cual, sin sumar el par. Los subtotales y el total escritos pueden estar en golpes."
+        : "Cada celda tiene los golpes del hoyo.",
       ctx.playerNames.length ? `Jugadores de esta partida: ${ctx.playerNames.join(", ")}. Si el nombre escrito es una abreviatura o apodo, dejalo tal como está escrito; no lo reemplaces.` : "",
       "Si un número es dudoso, ponelo igual y marcá su índice en uncertain. Si una celda tiene una X, o un guion en una fila de golpes, es null.",
       "notes: dejalo vacío. Escribí solo si hay algo que quien subió la foto tiene que saber y no se ve en las filas (p. ej. falta media tarjeta o hay una fila sin nombre), en una oración corta. No describas lo que leíste.",

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRound } from "@/lib/db/rounds";
 import { toImageInput, VISION_MODEL } from "@/lib/vision/client";
 import { extractScorecard, type ScorecardExtraction } from "@/lib/vision/scorecard";
+import type { Notation } from "@/lib/vision/notation";
 import { suggestAssignments } from "@/lib/vision/match";
 import { fail, friendlyDbError, ok, type ActionResult } from "@/lib/action-result";
 import { saveHoleScore } from "../actions";
@@ -15,6 +16,8 @@ const BUCKET = "scorecard-photos";
 export type ExtractionResult = {
   photoId: string;
   extraction: ScorecardExtraction;
+  /** Cómo está anotada la tarjeta (lo eligió quien subió la foto). */
+  notation: Notation;
   /** Par de cada posición jugada, para pasar lo anotado sobre el par a golpes. */
   pars: (number | null)[];
   /** scorecardId sugerido por fila (o null). */
@@ -40,7 +43,8 @@ export async function uploadScorecardPhoto(formData: FormData): Promise<ActionRe
 }
 
 /** Paso 2: lee una foto ya subida con el modelo de visión y propone a quién es cada fila. */
-export async function readScorecardPhoto(roundId: string, photoId: string): Promise<ActionResult<ExtractionResult>> {
+export async function readScorecardPhoto(roundId: string, photoId: string, notation: Notation): Promise<ActionResult<ExtractionResult>> {
+  if (notation !== "golpes" && notation !== "sobrePar") return fail("No sabemos cómo está anotada la tarjeta.");
   const round = await getRound(roundId);
   if (!round) return fail("No encontramos la partida.");
   const photo = round.photos.find((p) => p.id === photoId);
@@ -50,11 +54,11 @@ export async function readScorecardPhoto(roundId: string, photoId: string): Prom
   const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(photo.storagePath);
   if (dlErr || !blob) return fail(`No pudimos abrir la foto. ${friendlyDbError(dlErr)}`);
 
-  const pars = round.positions.map((p) => p.hole.par);
   let extraction: ScorecardExtraction;
   try {
     extraction = await extractScorecard(toImageInput(await blob.arrayBuffer(), blob.type), {
-      pars,
+      holesInRound: round.positions.length,
+      notation,
       playerNames: round.scorecards.map((s) => s.playerName),
     });
   } catch (e) {
@@ -70,7 +74,7 @@ export async function readScorecardPhoto(roundId: string, photoId: string): Prom
     extraction.rows.map((r) => r.name),
     round.scorecards.map((s) => ({ id: s.id, name: s.playerName })),
   );
-  return ok({ photoId, extraction, pars, suggestions });
+  return ok({ photoId, extraction, notation, pars: round.positions.map((p) => p.hole.par), suggestions });
 }
 
 /** Escribe los golpes confirmados en las tarjetas elegidas (nunca sobre una firmada). */

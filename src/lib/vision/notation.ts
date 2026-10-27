@@ -1,6 +1,6 @@
 /**
- * Cómo anotó cada jugador en la tarjeta de papel: los golpes del hoyo (5, 4, 6) o cuántos
- * sobre el par (+1, 0, -1). El modelo lee lo escrito y dice qué notación es; la cuenta la hace la app.
+ * Cómo está anotada la tarjeta de papel: los golpes del hoyo (5, 4, 6) o cuántos sobre el par
+ * (+1, 0, -1). La elige quien sube la foto; el modelo lee lo escrito y la cuenta la hace la app.
  */
 export type Notation = "golpes" | "sobrePar";
 

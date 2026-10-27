@@ -5,12 +5,10 @@ import { Button } from "@/components/ui/button";
 import { CellInput } from "@/components/ui/cell-input";
 import { Notice } from "@/components/ui/notice";
 import { Select } from "@/components/ui/select";
-import { Segmented } from "@/components/ui/toggle-group";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { fmtCount, fmtToPar } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Notation } from "@/lib/vision/notation";
 import type { Step } from "./photo-flow";
 import type { ExtractionResult } from "./photo-actions";
 
@@ -21,11 +19,9 @@ export default function PhotoSheet({
   holesInRound,
   assign,
   rows,
-  notations,
   pending,
   onAssign,
   onCell,
-  onNotation,
   onRetry,
   onPickPhoto,
   onApply,
@@ -37,11 +33,9 @@ export default function PhotoSheet({
   holesInRound: number;
   assign: (string | null)[];
   rows: (number | null)[][];
-  notations: Notation[];
   pending: boolean;
   onAssign: (i: number, id: string | null) => void;
   onCell: (i: number, k: number, v: number | null) => void;
-  onNotation: (i: number, notation: Notation) => void;
   onRetry: (photoId: string, preview: string) => void;
   onPickPhoto: () => void;
   onApply: () => void;
@@ -80,10 +74,8 @@ export default function PhotoSheet({
             holesInRound={holesInRound}
             assign={assign}
             rows={rows}
-            notations={notations}
             onAssign={onAssign}
             onCell={onCell}
-            onNotation={onNotation}
             footer={
               <SheetFooter>
                 <Button size="lg" pending={pending} pendingLabel="Cargando…" disabled={assign.every((a) => !a)} onClick={onApply}>
@@ -156,10 +148,8 @@ function Review({
   holesInRound,
   assign,
   rows,
-  notations,
   onAssign,
   onCell,
-  onNotation,
   footer,
 }: {
   result: ExtractionResult;
@@ -167,10 +157,8 @@ function Review({
   holesInRound: number;
   assign: (string | null)[];
   rows: (number | null)[][];
-  notations: Notation[];
   onAssign: (i: number, id: string | null) => void;
   onCell: (i: number, k: number, v: number | null) => void;
-  onNotation: (i: number, notation: Notation) => void;
   footer: React.ReactNode;
 }) {
   const halves = holesInRound === 18 ? [0, 9] : [0];
@@ -180,6 +168,7 @@ function Review({
         <SheetTitle>Revisá lo que leímos</SheetTitle>
         <SheetDescription>
           {fmtCount(result.extraction.rows.length, "fila")}. Elegí de quién es cada una y corregí lo que haga falta. Lo dudoso está en ámbar.
+          {result.notation === "sobrePar" && " Tarjeta anotada sobre el par: ya sumamos el par de cada hoyo."}
         </SheetDescription>
       </SheetHeader>
       {result.extraction.notes && <Notice tone="info">{result.extraction.notes}</Notice>}
@@ -202,16 +191,6 @@ function Review({
                   ))}
                 </Select>
               </div>
-              <Segmented
-                className="mt-2"
-                label={`Cómo anotó “${row.name}”`}
-                value={notations[i] ?? row.notation}
-                onValueChange={(n) => onNotation(i, n)}
-                options={[
-                  { value: "golpes", label: "Golpes" },
-                  { value: "sobrePar", label: "Sobre el par" },
-                ]}
-              />
               {halves.map((start) => (
                 <div key={start} className="mt-2 grid grid-cols-9 gap-1">
                   {rows[i].slice(start, start + 9).map((v, k) => (

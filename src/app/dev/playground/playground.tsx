@@ -660,11 +660,9 @@ function Overlays() {
         holesInRound={18}
         assign={[]}
         rows={[]}
-        notations={[]}
         pending={false}
         onAssign={() => {}}
         onCell={() => {}}
-        onNotation={() => {}}
         onRetry={() => {}}
         onPickPhoto={() => {}}
         onApply={() => {}}

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Images } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { Segmented } from "@/components/ui/toggle-group";
 import { usePhotoPicker } from "@/components/ui/use-photo-picker";
 import { fmtCount } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
@@ -45,7 +46,8 @@ export function PhotoFlow({
   const [step, setStep] = useState<Step>({ kind: "idle" });
   const [assign, setAssign] = useState<(string | null)[]>([]);
   const [rows, setRows] = useState<(number | null)[][]>([]);
-  const [notations, setNotations] = useState<Notation[]>([]);
+  // Cómo está anotada la tarjeta de papel; casi siempre en golpes.
+  const [notation, setNotation] = useState<Notation>("golpes");
   const [pending, start] = useTransition();
   const [sheetMounted, setSheetMounted] = useState(false);
   const [viewing, setViewing] = useState<number | null>(null);
@@ -73,12 +75,10 @@ export function PhotoFlow({
   async function read(photoId: string, preview: string) {
     setStep({ kind: "reading", preview, photoId });
     try {
-      const r = await readScorecardPhoto(roundId, photoId);
+      const r = await readScorecardPhoto(roundId, photoId, notation);
       if (!r.ok) return setStep({ kind: "error", message: r.error, photoId, preview });
       setAssign(r.data.suggestions);
-      const read = r.data.extraction.rows;
-      setNotations(read.map((row) => row.notation));
-      setRows(read.map((row) => toStrokes(padTo(row.values, holesInRound), r.data.pars, row.notation)));
+      setRows(r.data.extraction.rows.map((row) => toStrokes(padTo(row.values, holesInRound), r.data.pars, r.data.notation)));
       setStep({ kind: "review", result: r.data });
     } catch {
       setStep({ kind: "error", message: "Sin conexión mientras leíamos la foto. Quedó guardada: probá leerla de nuevo.", photoId, preview });
@@ -106,14 +106,6 @@ export function PhotoFlow({
   function discard() {
     setStep({ kind: "idle" });
     toast("Descartamos la lectura", { description: "La foto quedó guardada en la partida." });
-  }
-
-  /** Cambiar la notación de una fila vuelve a calcular sus golpes desde lo leído (pisa lo corregido a mano). */
-  function changeNotation(i: number, notation: Notation) {
-    if (step.kind !== "review") return;
-    setNotations(notations.map((n, j) => (j === i ? notation : n)));
-    const values = padTo(step.result.extraction.rows[i].values, holesInRound);
-    setRows(rows.map((r, j) => (j === i ? toStrokes(values, step.result.pars, notation) : r)));
   }
 
   function view(i: number) {
@@ -146,7 +138,26 @@ export function PhotoFlow({
           ) : null,
         )}
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">Si anotaron en papel, subí una foto de la tarjeta (en el momento o de la galería) y completamos los golpes. Cada uno firma la suya.</p>
+      <div className="mt-3 flex items-center gap-3">
+        <span aria-hidden className="text-sm text-muted-foreground">
+          Anotada en
+        </span>
+        <Segmented
+          className="grid w-auto grid-cols-2"
+          label="Tarjeta anotada en"
+          value={notation}
+          onValueChange={setNotation}
+          options={[
+            { value: "golpes", label: "Golpes" },
+            { value: "sobrePar", label: "Sobre el par" },
+          ]}
+        />
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {notation === "golpes"
+          ? "Si anotaron en papel, subí una foto de la tarjeta (en el momento o de la galería) y completamos los golpes. Cada uno firma la suya."
+          : "Cada número es cuántos golpes sobre el par: 0 es par, 1 bogey, −1 birdie. Le sumamos el par de cada hoyo."}
+      </p>
 
       {viewerMounted && (
         <PhotoViewer
@@ -164,11 +175,9 @@ export function PhotoFlow({
           holesInRound={holesInRound}
           assign={assign}
           rows={rows}
-          notations={notations}
           pending={pending}
           onAssign={(i, id) => setAssign(assign.map((a, j) => (j === i ? id : a)))}
           onCell={(i, k, v) => setRows(rows.map((r, j) => (j === i ? r.map((x, q) => (q === k ? v : x)) : r)))}
-          onNotation={changeNotation}
           onRetry={read}
           onPickPhoto={pickPhoto}
           onApply={apply}
