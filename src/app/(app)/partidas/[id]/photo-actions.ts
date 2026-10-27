@@ -15,6 +15,8 @@ const BUCKET = "scorecard-photos";
 export type ExtractionResult = {
   photoId: string;
   extraction: ScorecardExtraction;
+  /** Par de cada posición jugada, para pasar lo anotado sobre el par a golpes. */
+  pars: (number | null)[];
   /** scorecardId sugerido por fila (o null). */
   suggestions: (string | null)[];
 };
@@ -48,10 +50,11 @@ export async function readScorecardPhoto(roundId: string, photoId: string): Prom
   const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(photo.storagePath);
   if (dlErr || !blob) return fail(`No pudimos abrir la foto. ${friendlyDbError(dlErr)}`);
 
+  const pars = round.positions.map((p) => p.hole.par);
   let extraction: ScorecardExtraction;
   try {
     extraction = await extractScorecard(toImageInput(await blob.arrayBuffer(), blob.type), {
-      holesInRound: round.positions.length,
+      pars,
       playerNames: round.scorecards.map((s) => s.playerName),
     });
   } catch (e) {
@@ -67,7 +70,7 @@ export async function readScorecardPhoto(roundId: string, photoId: string): Prom
     extraction.rows.map((r) => r.name),
     round.scorecards.map((s) => ({ id: s.id, name: s.playerName })),
   );
-  return ok({ photoId, extraction, suggestions });
+  return ok({ photoId, extraction, pars, suggestions });
 }
 
 /** Escribe los golpes confirmados en las tarjetas elegidas (nunca sobre una firmada). */

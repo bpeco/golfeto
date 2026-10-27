@@ -40,6 +40,7 @@ Objetivo: que los 5 usen la app en una partida real.
 - [ ] CR/Slope oficial de CUBA Villa de Mayo (hoy 68 / 113 aproximado; azules y rojas sin rating). La búsqueda web no llegó: la AAG lo midió en 2017 y está en la nota del club "Recalificación de las canchas de golf del club" (cuba.org.ar), en la app de la AAG o en la oficina de golf. Candidato sin verificar: 34.7 / 113 de 9 hoyos (GolfPass, solo en snippets)
 - [ ] Cada amigo entra por el link y reclama su historial (Agus, Manu, Javo; Fava no tiene)
 - [ ] Probar la lectura de una foto real de tarjeta escrita a mano; ajustar el prompt si confunde columnas (OUT/IN/TOT) o nombres
+- [x] Foto de la tarjeta con jugadores que anotan **sobre el par** (0, +1, −1) en vez de golpes (2026-10-27, pedido del dueño): el modelo recibe el par de cada hoyo, dice la notación de cada fila (`golpes` / `sobrePar`) y devuelve lo escrito tal cual; la cuenta par + valor la hace la app (`src/lib/vision/notation.ts`, con tests). En la revisión cada fila tiene "Golpes / Sobre el par" para corregir si se equivocó (recalcula desde lo leído) y la suma muestra también el resultado respecto del par. Las notas del modelo quedan vacías salvo algo que quien subió la foto tenga que saber (también en la tarjeta del club). Sin probar con una foto real todavía
 - [ ] Pasar la rama de producción a `main` (crear `main`, default en GitHub, Production Branch en Vercel)
 
 ## Fase 3 — Pulido (después de la primera partida real)

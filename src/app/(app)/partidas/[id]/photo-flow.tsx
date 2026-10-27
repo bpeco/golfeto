@@ -9,6 +9,7 @@ import { usePhotoPicker } from "@/components/ui/use-photo-picker";
 import { fmtCount } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
 import { resizeImage } from "@/lib/image-resize";
+import { toStrokes, type Notation } from "@/lib/vision/notation";
 import { applyExtraction, readScorecardPhoto, uploadScorecardPhoto, type ExtractionResult } from "./photo-actions";
 
 // La hoja de pasos y el visor de fotos se bajan aparte, al usarlos.
@@ -44,6 +45,7 @@ export function PhotoFlow({
   const [step, setStep] = useState<Step>({ kind: "idle" });
   const [assign, setAssign] = useState<(string | null)[]>([]);
   const [rows, setRows] = useState<(number | null)[][]>([]);
+  const [notations, setNotations] = useState<Notation[]>([]);
   const [pending, start] = useTransition();
   const [sheetMounted, setSheetMounted] = useState(false);
   const [viewing, setViewing] = useState<number | null>(null);
@@ -74,7 +76,9 @@ export function PhotoFlow({
       const r = await readScorecardPhoto(roundId, photoId);
       if (!r.ok) return setStep({ kind: "error", message: r.error, photoId, preview });
       setAssign(r.data.suggestions);
-      setRows(r.data.extraction.rows.map((row) => padTo(row.strokes, holesInRound)));
+      const read = r.data.extraction.rows;
+      setNotations(read.map((row) => row.notation));
+      setRows(read.map((row) => toStrokes(padTo(row.values, holesInRound), r.data.pars, row.notation)));
       setStep({ kind: "review", result: r.data });
     } catch {
       setStep({ kind: "error", message: "Sin conexión mientras leíamos la foto. Quedó guardada: probá leerla de nuevo.", photoId, preview });
@@ -102,6 +106,14 @@ export function PhotoFlow({
   function discard() {
     setStep({ kind: "idle" });
     toast("Descartamos la lectura", { description: "La foto quedó guardada en la partida." });
+  }
+
+  /** Cambiar la notación de una fila vuelve a calcular sus golpes desde lo leído (pisa lo corregido a mano). */
+  function changeNotation(i: number, notation: Notation) {
+    if (step.kind !== "review") return;
+    setNotations(notations.map((n, j) => (j === i ? notation : n)));
+    const values = padTo(step.result.extraction.rows[i].values, holesInRound);
+    setRows(rows.map((r, j) => (j === i ? toStrokes(values, step.result.pars, notation) : r)));
   }
 
   function view(i: number) {
@@ -152,9 +164,11 @@ export function PhotoFlow({
           holesInRound={holesInRound}
           assign={assign}
           rows={rows}
+          notations={notations}
           pending={pending}
           onAssign={(i, id) => setAssign(assign.map((a, j) => (j === i ? id : a)))}
           onCell={(i, k, v) => setRows(rows.map((r, j) => (j === i ? r.map((x, q) => (q === k ? v : x)) : r)))}
+          onNotation={changeNotation}
           onRetry={read}
           onPickPhoto={pickPhoto}
           onApply={apply}
