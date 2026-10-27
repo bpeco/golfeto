@@ -23,6 +23,9 @@ export type RoundScorecard = {
     differential: number;
     handicapIndex: number | null;
     handicapSource: Database["public"]["Enums"]["handicap_source"];
+    /** Quién firmó (puede ser otro golfista de la partida); null en las históricas importadas. */
+    signedById: string | null;
+    signedByName: string | null;
   } | null;
   /** Por posición (1..18). */
   scores: Record<number, { strokes: number | null; pickedUp: boolean }>;

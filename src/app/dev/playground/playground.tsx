@@ -610,11 +610,27 @@ const CARD_PREVIEW =
 
 function Overlays() {
   const confirm = useConfirm();
-  const [signOpen, setSignOpen] = useState(false);
+  const [signOpen, setSignOpen] = useState<"closed" | "one" | "many">("closed");
   const [photoStep, setPhotoStep] = useState<"idle" | "uploading" | "reading">("idle");
   const [courseSheet, setCourseSheet] = useState<"closed" | "open" | "signed">("closed");
   const bauti = round.scorecards.find((c) => c.id === "card-bauti")!;
-  const estimate = estimateSignature(round.positions, { ...bauti.scores, 13: { strokes: 5, pickedUp: false } }, { courseRating: 70.3, slope: 125, par: 71, holesInRound: 18 }, 21.3);
+  const pgRating = { courseRating: 70.3, slope: 125, par: 71, holesInRound: 18 } as const;
+  const estimate = estimateSignature(round.positions, { ...bauti.scores, 13: { strokes: 5, pickedUp: false } }, pgRating, 21.3);
+  const fullCard = (strokes: number[]) => Object.fromEntries(strokes.map((n, i) => [i + 1, { strokes: n, pickedUp: false }]));
+  const manuEstimate = estimateSignature(round.positions, fullCard([5, 6, 4, 6, 5, 5, 3, 6, 5, 4, 6, 4, 6, 7, 5, 5, 5, 6]), pgRating, 24.0);
+  const javoEstimate = estimateSignature(round.positions, fullCard([6, 6, 5, 7, 6, 6, 4]), pgRating, 27.8);
+  const ownCard = { id: "card-bauti", name: "Bauti", isOwner: true, estimate, toPar: 9, saving: false };
+  const ownSummary = {
+    gross: estimate.gross,
+    adjustedGross: estimate.adjustedGross,
+    courseHandicap: estimate.courseHandicap,
+    differential: estimate.differential,
+    indexBefore: 21.3,
+    sourceBefore: "calculado" as const,
+    indexAfter: 20.8,
+    sourceAfter: "calculado" as const,
+    signedCount: 13,
+  };
   return (
     <div className="flex flex-wrap gap-2">
       <Button
@@ -632,8 +648,11 @@ function Overlays() {
       >
         Confirmación
       </Button>
-      <Button variant="secondary" onClick={() => setSignOpen(true)}>
+      <Button variant="secondary" onClick={() => setSignOpen("one")}>
         Firmar (de mentira)
+      </Button>
+      <Button variant="secondary" onClick={() => setSignOpen("many")}>
+        Firmar tarjetas (de mentira)
       </Button>
       <Button variant="secondary" onClick={() => setPhotoStep("reading")}>
         Foto: leyendo
@@ -670,24 +689,24 @@ function Overlays() {
         onClose={() => setPhotoStep("idle")}
       />
       <SignSheet
-        open={signOpen}
-        onOpenChange={setSignOpen}
+        key={signOpen === "many" ? "many" : "one"}
+        open={signOpen !== "closed"}
+        onOpenChange={(o) => !o && setSignOpen("closed")}
         roundId={round.id}
-        cardId="card-bauti"
-        estimate={estimate}
-        toPar={9}
-        sign={async () => ({
+        cards={
+          signOpen === "many"
+            ? [
+                ownCard,
+                { id: "card-manu-2", name: "Manu", isOwner: false, estimate: manuEstimate, toPar: 18, saving: false },
+                { id: "card-javo", name: "Javo", isOwner: false, estimate: javoEstimate, toPar: 12, saving: false },
+              ]
+            : [ownCard]
+        }
+        sign={async (_roundId, ids) => ({
           ok: true,
           data: {
-            gross: estimate.gross,
-            adjustedGross: estimate.adjustedGross,
-            courseHandicap: estimate.courseHandicap,
-            differential: estimate.differential,
-            indexBefore: 21.3,
-            sourceBefore: "calculado",
-            indexAfter: 20.8,
-            sourceAfter: "calculado",
-            signedCount: 13,
+            own: ids.includes("card-bauti") ? ownSummary : null,
+            others: ids.includes("card-manu-2") ? [{ name: "Manu", differential: manuEstimate.differential }] : [],
           },
         })}
       />

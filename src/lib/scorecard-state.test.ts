@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { holesLabel, initialPosition, playedCount, signBlocker } from "./scorecard-state";
+import { holesLabel, initialPosition, playedCount, signBlocker, signedTitle } from "./scorecard-state";
 
 const positions = Array.from({ length: 18 }, (_, i) => ({ position: i + 1, hole: { number: i + 1, par: 4 } }));
 
@@ -14,11 +14,11 @@ describe("holesLabel", () => {
 });
 
 describe("signBlocker", () => {
-  const base = { isOwner: true, locked: false, hasRating: true, dirty: false, played: 18, holesInRound: 18, playerName: "Agus" };
+  const base = { canSign: true, locked: false, hasRating: true, dirty: false, played: 18, holesInRound: 18, playerName: "Agus" };
   it("se puede firmar", () => expect(signBlocker(base)).toBeNull());
   it("cada motivo, en orden", () => {
     expect(signBlocker({ ...base, locked: true })?.reason).toBe("locked");
-    expect(signBlocker({ ...base, isOwner: false })?.message).toBe("Solo Agus puede firmar su tarjeta.");
+    expect(signBlocker({ ...base, canSign: false })?.message).toBe("Solo Agus puede firmar su tarjeta.");
     expect(signBlocker({ ...base, hasRating: false })?.reason).toBe("no-rating");
     expect(signBlocker({ ...base, played: 9 })?.message).toBe("Para firmar hacen falta 10 hoyos: hay 9.");
     expect(signBlocker({ ...base, played: 9, holesInRound: 9 })).toBeNull();
@@ -35,5 +35,22 @@ describe("posición inicial y jugados", () => {
   it("con la tarjeta completa, el último", () => {
     const full = Object.fromEntries(positions.map((p) => [p.position, { strokes: 4, pickedUp: false }]));
     expect(initialPosition(positions, full)).toBe(18);
+  });
+});
+
+describe("signedTitle", () => {
+  const sig = (id: string | null, name: string | null) => ({ signedById: id, signedByName: name });
+  const manu = { playerId: "m", playerName: "Manu", isOwner: false, signedByMe: false };
+  it("la firmó el dueño", () => {
+    expect(signedTitle({ ...manu, isOwner: true, signature: sig("m", "Manu") })).toBe("Firmaste esta tarjeta");
+    expect(signedTitle({ ...manu, signature: sig("m", "Manu") })).toBe("Manu ya firmó");
+  });
+  it("la firmó otro golfista de la partida", () => {
+    expect(signedTitle({ ...manu, isOwner: true, signature: sig("b", "Bauti") })).toBe("Bauti firmó tu tarjeta");
+    expect(signedTitle({ ...manu, signedByMe: true, signature: sig("b", "Bauti") })).toBe("Firmaste la tarjeta de Manu");
+    expect(signedTitle({ ...manu, signature: sig("b", "Bauti") })).toBe("Bauti firmó la tarjeta de Manu");
+  });
+  it("histórica importada, sin firmante", () => {
+    expect(signedTitle({ ...manu, signature: sig(null, null) })).toBe("Manu ya firmó");
   });
 });

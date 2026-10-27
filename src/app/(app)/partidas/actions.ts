@@ -5,9 +5,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePlayer } from "@/lib/db/player";
-import { resignature } from "@/lib/sign-estimate";
+import { resignature, type RatingForSign } from "@/lib/sign-estimate";
 import { getPlayerHandicap, type PlayerHandicap } from "@/lib/db/handicap";
-import { effectiveTeeRating, getRound, positionsFor } from "@/lib/db/rounds";
+import { effectiveTeeRating, getRound, positionsFor, type RoundDetail, type RoundScorecard } from "@/lib/db/rounds";
 import { layoutForCourseChange } from "@/lib/round-model";
 import { fail, friendlyDbError, fromZod, ok, type ActionResult } from "@/lib/action-result";
 import { todayInArgentina } from "@/lib/dates";
@@ -264,6 +264,107 @@ export async function signScorecard(roundId: string, scorecardId: string): Promi
   const rating = effectiveTeeRating(round);
   if (!rating) return fail("El tee no tiene Course Rating y Slope: cargalos en la cancha para poder firmar.");
 
+  const c = await computeSignature(round, card, rating);
+  if (!c.ok) return fail(c.error);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("sign_scorecard", {
+    p_scorecard_id: scorecardId,
+    p_handicap_source: c.value.source,
+    // La firma guarda null cuando no había ningún índice; el tipo generado no admite null.
+    p_handicap_index: (c.value.index ?? null) as unknown as number,
+    p_course_handicap: c.value.courseHandicap,
+    p_adjusted_gross: c.value.adjustedGross,
+    p_differential: c.value.differential,
+  });
+  if (error) return fail(friendlyDbError(error));
+
+  const after = await snapshotIndex(card.playerId);
+  revalidatePath(`/partidas/${roundId}`);
+  revalidatePath("/");
+  return ok(summaryOf(c.value, after));
+}
+
+export type SignManySummary = {
+  /** La propia, si estaba entre las firmadas (con el índice antes y después). */
+  own: SignSummary | null;
+  /** Las de los demás, firmadas a nombre de quien firmó. */
+  others: { name: string; differential: number }[];
+};
+
+/**
+ * Firmar varias tarjetas de la partida de una vez, la propia y las de los demás (decisión del dueño,
+ * 2026-10-27): como el marcador, cualquiera de los que juegan firma las de sus compañeros, y cada firma
+ * queda a su nombre. Cada tarjeta se calcula con el Hándicap Index de su golfista, como si la firmara él.
+ * Las de los demás pasan por sign_scorecards_as (solo service_role, una transacción): el permiso se
+ * verifica acá con la sesión y otra vez en la base. Invitados e históricas no se firman.
+ */
+export async function signScorecards(roundId: string, scorecardIds: string[]): Promise<ActionResult<SignManySummary>> {
+  const ids = [...new Set(Array.isArray(scorecardIds) ? scorecardIds.filter((id) => typeof id === "string") : [])];
+  if (ids.length === 0) return fail("Elegí al menos una tarjeta.");
+  const me = await requirePlayer();
+  const round = await getRound(roundId);
+  if (!round) return fail("No encontramos la partida. Puede haber sido dada de baja.");
+  if (!round.scorecards.some((s) => s.playerId === me.id)) return fail("Solo los que juegan la partida pueden firmar las tarjetas de los demás.");
+  const rating = effectiveTeeRating(round);
+  if (!rating) return fail("El tee no tiene Course Rating y Slope: cargalos en la cancha para poder firmar.");
+
+  const ownId = round.scorecards.find((s) => s.playerId === me.id)?.id;
+  if (ids.length === 1 && ids[0] === ownId) {
+    const r = await signScorecard(roundId, ownId);
+    return r.ok ? ok({ own: r.data, others: [] }) : r;
+  }
+
+  const signs = [];
+  const others: SignManySummary["others"] = [];
+  let own: ComputedSignature | null = null;
+  for (const id of ids) {
+    const card = round.scorecards.find((s) => s.id === id);
+    if (!card) return fail("Una de las tarjetas ya no está en la partida. Recargá y probá de nuevo.");
+    if (card.signedAt) return fail(`La tarjeta de ${card.playerName} ya está firmada. Recargá y probá de nuevo.`);
+    if (card.isGuest) return fail(`${card.playerName} es invitado: su tarjeta no se firma.`);
+    if (card.isLegacy) return fail(`La tarjeta de ${card.playerName} es histórica: no se firma desde acá.`);
+    const c = await computeSignature(round, card, rating);
+    if (!c.ok) return fail(card.id === ownId ? c.error : `La tarjeta de ${card.playerName}: ${c.error}`);
+    if (card.id === ownId) own = c.value;
+    else others.push({ name: card.playerName, differential: c.value.differential });
+    signs.push({
+      scorecard_id: card.id,
+      handicap_source: c.value.source,
+      handicap_index: c.value.index,
+      course_handicap: c.value.courseHandicap,
+      adjusted_gross: c.value.adjustedGross,
+      differential: c.value.differential,
+    });
+  }
+
+  const admin = createAdminClient();
+  if (!admin) return fail("No se pueden firmar las tarjetas de los demás: falta SUPABASE_SERVICE_ROLE_KEY en el servidor. Avisale al dueño del proyecto.");
+  const { error } = await admin.rpc("sign_scorecards_as", { p_actor: me.id, p_round_id: roundId, p_signs: signs });
+  if (error) return fail(friendlyDbError(error));
+
+  const after = own ? await snapshotIndex(me.id) : null;
+  revalidatePath(`/partidas/${roundId}`);
+  revalidatePath("/");
+  return ok({ own: own && after ? summaryOf(own, after) : null, others });
+}
+
+type ComputedSignature = {
+  source: "index" | "declarado" | "ninguno";
+  index: number | null;
+  courseHandicap: number;
+  gross: number;
+  adjustedGross: number;
+  differential: number;
+  before: PlayerHandicap;
+};
+
+/** Lo que congela la firma de una tarjeta, con el Hándicap Index vigente de su golfista. */
+async function computeSignature(
+  round: RoundDetail,
+  card: RoundScorecard,
+  rating: RatingForSign,
+): Promise<{ ok: true; value: ComputedSignature } | { ok: false; error: string }> {
   const before = await getPlayerHandicap(card.playerId);
   const index = before.effective;
   const source = before.source === "calculado" ? "index" : before.source === "declarado" ? "declarado" : "ninguno";
@@ -273,7 +374,7 @@ export async function signScorecard(roundId: string, scorecardId: string): Promi
   let adjustedGross: number;
   let gross: number;
   if (card.isLegacy) {
-    if (card.legacyGross == null) return fail("La tarjeta histórica no tiene total.");
+    if (card.legacyGross == null) return { ok: false, error: "La tarjeta histórica no tiene total." };
     adjustedGross = card.legacyGross;
     gross = card.legacyGross;
   } else {
@@ -288,7 +389,7 @@ export async function signScorecard(roundId: string, scorecardId: string): Promi
     // Sin ningún índice (ni calculado ni declarado) no hay net double bogey: el tope es par + 5.
     const ags = adjustedGrossScore(results, index == null ? null : ch, rating.holesInRound);
     if (!ags.acceptable) {
-      return fail(`Faltan hoyos: hay ${ags.holesPlayed} cargados y se necesitan al menos ${minimumHolesToSign(rating.holesInRound)}.`);
+      return { ok: false, error: `Faltan hoyos: hay ${ags.holesPlayed} cargados y se necesitan al menos ${minimumHolesToSign(rating.holesInRound)}.` };
     }
     adjustedGross = ags.adjustedGross;
     gross = ags.gross;
@@ -296,34 +397,23 @@ export async function signScorecard(roundId: string, scorecardId: string): Promi
 
   let differential = scoreDifferential(adjustedGross, rating);
   if (rating.holesInRound === 9) differential = differentialFrom9Holes(differential, index);
+  return { ok: true, value: { source, index, courseHandicap: ch, gross, adjustedGross, differential, before } };
+}
 
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("sign_scorecard", {
-    p_scorecard_id: scorecardId,
-    p_handicap_source: source,
-    // La firma guarda null cuando no había ningún índice; el tipo generado no admite null.
-    p_handicap_index: (index ?? null) as unknown as number,
-    p_course_handicap: ch,
-    p_adjusted_gross: adjustedGross,
-    p_differential: differential,
-  });
-  if (error) return fail(friendlyDbError(error));
-
-  const after = await snapshotIndex(card.playerId);
-  revalidatePath(`/partidas/${roundId}`);
-  revalidatePath("/");
-  return ok({
-    gross,
-    adjustedGross,
-    courseHandicap: ch,
-    differential,
-    indexBefore: before.effective,
-    sourceBefore: before.source,
+function summaryOf(c: ComputedSignature, after: PlayerHandicap): SignSummary {
+  return {
+    gross: c.gross,
+    adjustedGross: c.adjustedGross,
+    courseHandicap: c.courseHandicap,
+    differential: c.differential,
+    indexBefore: c.before.effective,
+    sourceBefore: c.before.source,
     indexAfter: after.effective,
     sourceAfter: after.source,
     signedCount: after.signedCount,
-  });
+  };
 }
+
 
 export async function unsignScorecard(
   roundId: string,

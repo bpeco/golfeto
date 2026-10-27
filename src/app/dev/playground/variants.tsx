@@ -82,6 +82,7 @@ function PartidaA() {
     courseHandicap: courseHandicaps[c.id],
     ownerIndex: players.find((p) => p.id === c.playerId)?.handicap.effective ?? null,
     isOwner: c.playerId === ME_ID,
+    signedByMe: c.signature?.signedById === ME_ID,
   }));
   return (
     <div>

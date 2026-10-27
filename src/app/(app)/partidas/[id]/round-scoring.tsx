@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { RoundHole, RoundScorecard } from "@/lib/round-model";
 import type { RatingForSign } from "@/lib/sign-estimate";
 import { estimateSignature } from "@/lib/sign-estimate";
+import type { SignableCard } from "./sign-sheet";
 import { cardTotals, type HoleScore } from "@/lib/scorecard-totals";
 import { initialPosition, playedCount, signBlocker } from "@/lib/scorecard-state";
 import { saveHoleScore } from "../actions";
@@ -25,6 +26,8 @@ export type ScoringCard = Pick<
   /** Hándicap efectivo del golfista hoy (para estimar la firma). */
   ownerIndex: number | null;
   isOwner: boolean;
+  /** La firmó quien mira (la propia, o la de otro golfista de la partida). */
+  signedByMe: boolean;
 };
 
 // La hoja de firma se baja aparte del JS de la partida.
@@ -84,8 +87,13 @@ export function RoundScoring({
     syncFromServer(serverScores);
   }, [serverScores, syncFromServer]);
 
-  // Si hay una tarjeta propia sin firmar, la hoja de firma se precarga después de hidratar.
-  const mayNeedSign = !!rating && cards.some((c) => c.isOwner && !c.signedAt && !c.isLegacy);
+  // Quien juega la partida firma la suya y las de los demás golfistas (no las de invitados ni las históricas).
+  const plays = cards.some((c) => c.isOwner);
+  const canSign = (c: ScoringCard) => (c.isOwner || (plays && !c.isGuest)) && !c.isLegacy;
+  const unsigned = cards.filter((c) => canSign(c) && !c.signedAt).sort((a, b) => Number(b.isOwner) - Number(a.isOwner));
+
+  // Si hay una tarjeta sin firmar que quien mira puede firmar, la hoja se precarga después de hidratar.
+  const mayNeedSign = !!rating && unsigned.length > 0;
   useEffect(() => {
     if (mayNeedSign) void loadSignSheet();
   }, [mayNeedSign]);
@@ -97,7 +105,7 @@ export function RoundScoring({
   const holesInRound = positions.length === 18 ? 18 : 9;
   const totals = cardTotals(positions, cardScores, { loops, courseHandicap: card.courseHandicap });
   const blocker = signBlocker({
-    isOwner: card.isOwner,
+    canSign: canSign(card),
     locked,
     hasRating: !!rating,
     dirty: dirtyCards.has(card.id),
@@ -174,7 +182,7 @@ export function RoundScoring({
         onRetry={retry}
         mode={mode}
         onToggleMode={() => setMode(mode === "hoyo" ? "tarjeta" : "hoyo")}
-        signState={card.isOwner && !locked ? (blocker ? { disabled: true, reason: blocker.reason === "saving" ? undefined : blocker.message } : { disabled: false }) : null}
+        signState={canSign(card) && !locked ? (blocker ? { disabled: true, reason: blocker.reason === "saving" ? undefined : blocker.message } : { disabled: false }) : null}
         onSign={() => {
           setSignMounted(true);
           setSignOpen(true);
@@ -189,15 +197,23 @@ export function RoundScoring({
         }
       />
 
-      {/* Abierta sigue montada aunque la tarjeta ya figure firmada: muestra el "Firmada". */}
-      {signMounted && card.isOwner && rating && (!locked || signOpen) && (
+      {/* Abierta sigue montada aunque las tarjetas ya figuren firmadas: muestra el "Firmada". */}
+      {signMounted && rating && (unsigned.length > 0 || signOpen) && (
         <SignSheet
           open={signOpen}
           onOpenChange={setSignOpen}
           roundId={roundId}
-          cardId={card.id}
-          estimate={estimateSignature(positions, cardScores, rating, card.ownerIndex)}
-          toPar={totals.toPar}
+          cards={unsigned.map((c): SignableCard => {
+            const s = scores[c.id] ?? {};
+            return {
+              id: c.id,
+              name: c.playerName,
+              isOwner: c.isOwner,
+              estimate: estimateSignature(positions, s, rating, c.ownerIndex),
+              toPar: cardTotals(positions, s, { loops, courseHandicap: c.courseHandicap }).toPar,
+              saving: dirtyCards.has(c.id),
+            };
+          })}
         />
       )}
       {ratingMounted && <RatingSheet open={ratingOpen} onOpenChange={setRatingOpen} roundId={roundId} teeName={tee.name} holesCount={tee.holesCount} />}

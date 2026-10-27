@@ -50,6 +50,7 @@ export default async function RoundPage({ params, searchParams }: { params: Prom
       courseHandicap: card.signature?.courseHandicap ?? estimated,
       ownerIndex: index,
       isOwner: card.playerId === me.id,
+      signedByMe: card.signature?.signedById === me.id,
     };
   });
 

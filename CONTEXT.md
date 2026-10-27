@@ -29,7 +29,7 @@ Cantidad de golpes reales de un golfista en un hoyo, tal como se jugó. Los ajus
 _Avoid_: score, tiros, puntos
 
 **Firmar** (`Sign`):
-Acto por el cual el golfista da por definitiva su propia tarjeta y la entrega. Solo una tarjeta firmada cuenta para el hándicap.
+Acto por el cual una tarjeta queda definitiva y se entrega. La firma el golfista, o cualquiera de los que juegan la misma partida por él, como el marcador (ADR-0005); la firma queda a nombre de quien firmó y desfirmar es solo del dueño. Solo una tarjeta firmada cuenta para el hándicap.
 _Avoid_: entregar, cerrar, confirmar
 
 **Foto de tarjeta** (`ScorecardPhoto`):

@@ -12,6 +12,7 @@ import { strokesOnHole } from "@/lib/handicap/course";
 import { fmtDecimal, fmtIndex } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
 import { notationLabel } from "@/lib/score-notation";
+import { signedTitle } from "@/lib/scorecard-state";
 import type { HoleScore } from "@/lib/scorecard-totals";
 import { cn } from "@/lib/utils";
 import { unsignScorecard } from "../actions";
@@ -182,7 +183,7 @@ function SignedHole({ card, score, par, roundId, onUnsigned }: { card: ScoringCa
         <ScoreMark strokes={score?.strokes} par={par} pickedUp={score?.pickedUp} size="lg" />
       </div>
       <LockedHole
-        title={card.isOwner ? "Firmaste esta tarjeta" : `${card.playerName} ya firmó`}
+        title={signedTitle(card)}
         body={
           sig
             ? `Gross ${sig.gross}, ajustado ${sig.adjustedGross}, hándicap de cancha ${sig.courseHandicap}, diferencial ${fmtDecimal(sig.differential)}.`

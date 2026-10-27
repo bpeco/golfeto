@@ -29,7 +29,8 @@ export type SignBlocker = null | { reason: "not-owner" | "locked" | "no-rating" 
  * partida de 18, los 9 en una de 9.
  */
 export function signBlocker(o: {
-  isOwner: boolean;
+  /** La propia, o la de otro golfista de la partida si quien mira también juega. */
+  canSign: boolean;
   locked: boolean;
   hasRating: boolean;
   dirty: boolean;
@@ -38,7 +39,7 @@ export function signBlocker(o: {
   playerName: string;
 }): SignBlocker {
   if (o.locked) return { reason: "locked", message: "La tarjeta ya está firmada." };
-  if (!o.isOwner) return { reason: "not-owner", message: `Solo ${o.playerName} puede firmar su tarjeta.` };
+  if (!o.canSign) return { reason: "not-owner", message: `Solo ${o.playerName} puede firmar su tarjeta.` };
   if (!o.hasRating) return { reason: "no-rating", message: "Sin CR y Slope del tee: hacen falta para firmar." };
   const min = minimumHolesToSign(o.holesInRound);
   if (o.played < min) return { reason: "holes", message: `Para firmar hacen falta ${min} hoyos: hay ${o.played}.` };
@@ -49,4 +50,23 @@ export function signBlocker(o: {
 /** Dónde abrir la partida: el primer hoyo sin anotar, o el último si ya está completa. */
 export function initialPosition(positions: PositionedHole[], scores: Record<number, HoleScore | undefined>) {
   return nextUnplayed(positions, scores) ?? positions.at(-1)?.position ?? 1;
+}
+
+/**
+ * Título de una tarjeta firmada. La puede haber firmado otro golfista de la partida (queda a su
+ * nombre); las históricas importadas no tienen firmante.
+ */
+export function signedTitle(card: {
+  playerId: string;
+  playerName: string;
+  isOwner: boolean;
+  signedByMe: boolean;
+  signature: { signedById: string | null; signedByName: string | null } | null;
+}): string {
+  const by = card.signature?.signedById;
+  const byOther = by != null && by !== card.playerId;
+  const signer = card.signature?.signedByName ?? "Otro golfista";
+  if (card.isOwner) return byOther ? `${signer} firmó tu tarjeta` : "Firmaste esta tarjeta";
+  if (!byOther) return `${card.playerName} ya firmó`;
+  return card.signedByMe ? `Firmaste la tarjeta de ${card.playerName}` : `${signer} firmó la tarjeta de ${card.playerName}`;
 }

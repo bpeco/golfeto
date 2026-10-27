@@ -1,0 +1,7 @@
+# Cualquiera de los que juegan firma las tarjetas de los demás
+
+Hasta 2026-10-27 cada golfista firmaba solo su tarjeta. En la práctica uno solo carga la partida (o la foto de la tarjeta de papel) y los demás tardan días en entrar a firmar, así que sus tarjetas no cuentan para el hándicap. Decidimos (pedido del dueño) que cualquiera de los que juegan una partida pueda firmar, de una vez, las tarjetas sin firmar de los otros golfistas de esa partida, como el marcador que certifica la tarjeta del compañero en el golf de verdad. Cada tarjeta se calcula con el Hándicap Index de su dueño y la firma queda a nombre de quien firmó, que se ve en la tarjeta ("Bauti firmó tu tarjeta"). Desfirmar sigue siendo solo del dueño: si no está de acuerdo, la desfirma, corrige y vuelve a firmar.
+
+No se firman invitados (no tienen cuenta ni historial propio) ni tarjetas históricas. La alternativa de firmar por otros con confirmación de cada uno (un aviso para aceptar) quedó para cuando la app tenga avisos; el costo de esta decisión es que un error en los golpes de otro entra a su hándicap hasta que lo vea y desfirme.
+
+Como el cambio de cancha con tarjetas firmadas (0007), los valores del WHS de las tarjetas ajenas los calcula el servidor y la base los recibe por una función que solo ejecuta `service_role` (`sign_scorecards_as`, 0008), después de que la acción de servidor verificó con la sesión que quien firma juega la partida.

@@ -87,7 +87,8 @@ elige la versión con `valid_from <= played_on and (valid_to is null or valid_to
   ajustado, diferencial) más lo que toma la base en ese instante (gross real o `legacy_gross`, par, CR, Slope,
   `holes_played`). Ese snapshot es lo que consume el cálculo del Hándicap Index; no se recalcula nunca.
 - `unsign_scorecard(id, reason)` inserta `desfirmar`. Ambos quedan en el historial con quién y cuándo.
-- `guard_signature_insert`: sólo el dueño de la tarjeta (o service role, para importar históricas); no se firma lo
+- `guard_signature_insert`: sólo el dueño de la tarjeta (o service role: importar históricas, refirmar al cambiar la
+  cancha y firmar por los demás, ADR-0005); no se firma lo
   firmado ni se desfirma lo abierto. `apply_signature` proyecta el evento sobre `scorecards.signed_at` /
   `current_signature_id` (para RLS, índices y listados).
 - Con `signed_at` presente: los golpes (`hole_scores`) no se escriben, la tarjeta no se edita ni se da de baja, y la
@@ -111,6 +112,10 @@ servidor después de verificar con la sesión que el golfista juega la partida o
 quien hizo el cambio. La firma de siempre (`sign_scorecard`) y esta comparten el cuerpo en `private.sign_as`.
 Excepción consciente a "solo el dueño firma o desfirma su tarjeta" (decisión del dueño, 2026-09-27): corregir la
 cancha no cambia los golpes, y dejar la firma vieja mantendría el hándicap calculado con la cancha equivocada.
+Firmar por los demás (ADR-0005) usa `sign_scorecards_as` (0008), también **solo `service_role`**: la acción de servidor
+verifica que quien firma juega la partida, calcula cada tarjeta con el índice de su dueño y la función, en una
+transacción, vuelve a verificar que el actor juega la partida y que cada tarjeta es de esa partida, está sin firmar,
+no es histórica ni de un invitado; firma con `private.sign_as` a nombre del actor. Desfirmar sigue siendo del dueño.
 `auth.uid()` y `current_player_id()` van envueltos en `(select ...)` para que se evalúen una vez por consulta.
 Golfistas y canchas son visibles y editables por todo `authenticated`; grupos sólo por miembros; partidas, tarjetas,
 golpes, firmas y fotos por participantes y por quien comparte grupo con algún participante (ADR-0002).

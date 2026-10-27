@@ -1427,6 +1427,10 @@ export type Database = {
         }
         Returns: string
       }
+      sign_scorecards_as: {
+        Args: { p_actor: string; p_round_id: string; p_signs: Json }
+        Returns: number
+      }
       unsign_scorecard: {
         Args: { p_reason?: string; p_scorecard_id: string }
         Returns: string
