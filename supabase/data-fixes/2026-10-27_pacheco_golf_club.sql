@@ -56,3 +56,11 @@ insert into tee_hole_distances (course_version_id, tee_set_id, hole_id, meters)
   from (values (1, 294), (2, 424), (3, 284), (4, 300), (5, 105), (6, 299), (7, 401), (8, 316), (9, 106), (10, 279), (11, 302), (12, 445), (13, 334), (14, 135), (15, 354), (16, 131), (17, 336), (18, 435)) d(n, m)
   join holes h on h.course_version_id = (select id from v where k = 'ver') and h.number = d.n and h.deleted_at is null;
 commit;
+
+-- Después (2026-10-27): CR/Slope de Blancas 69.3 / 118 (GolfPass y GolfCore, verificados abriendo las páginas
+-- desde otra sesión con navegador; no oficial de la AAG). Sin tarjetas firmadas en ese tee al momento del cambio.
+-- Rojas queda sin rating: el único publicado (72.7 / 124) es de mujeres y el tee no distingue sexo.
+-- Ratings de 9 hoyos publicados por drills.golf (sin uso: el modelo no tiene rating de 9 en tees de 18):
+-- Azul ida 34.8/125, vuelta 35.8/122; Blanco ida 34.4/114, vuelta 34.9/121; Rojo (mujeres) ida 35.5/120, vuelta 37.2/127.
+update tee_sets set course_rating = 69.3, slope = 118
+  where course_version_id = 'ae6f836b-64ab-454e-8e86-6f70a44b08dd' and name = 'Blancas' and course_rating is null;
