@@ -67,7 +67,7 @@ export function Trend({ delta, className }: { delta?: number | null; className?:
     <Icon
       role="img"
       aria-label={label}
-      className={cn("size-5 shrink-0", delta < 0 ? "text-score-under" : delta > 0 ? "text-score-over" : "text-board-muted", className)}
+      className={cn("size-5 shrink-0", delta < 0 ? "text-trend-better" : delta > 0 ? "text-trend-worse" : "text-board-muted", className)}
     />
   );
 }

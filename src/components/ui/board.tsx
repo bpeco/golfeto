@@ -11,7 +11,7 @@ export function Board({ className, ...props }: ComponentProps<"div">) {
       data-slot="board"
       className={cn(
         "rounded-xl bg-board p-4 text-board-foreground ring-1 ring-inset ring-board-foreground/10",
-        "[--score-under:var(--board-under)] [--score-over:var(--board-over)] [--muted-foreground:var(--board-muted)]",
+        "[--score-under:var(--board-under)] [--score-over:var(--board-over)] [--trend-better:var(--board-better)] [--trend-worse:var(--board-worse)] [--muted-foreground:var(--board-muted)]",
         className,
       )}
       {...props}

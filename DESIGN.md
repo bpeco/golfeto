@@ -37,7 +37,7 @@ Claro: papel teñido `oklch(0.972 0.008 120)` (hue 120, no crema), tinta verde-n
 
 **Contraste** (`pnpm contrast`, falla si algo no llega): tinta/página ≥ 12:1; metadatos ≥ 4,5:1; numerales de pizarra ≥ 7:1; bajo/sobre par ≥ 4,5:1 sobre card y página; botón primario y aviso ≥ 4,5:1; foco ≥ 3:1. Si algo falla se ajusta L, nunca chroma por encima de 0.19. Nada de negro, blanco ni gris puros (`pnpm lint:tokens` los prohíbe en clases).
 
-Tendencia del índice (`Trend`): bajar (mejorar) va en `score-under` y subir en `score-over`, como los números bajo y sobre par de un leaderboard de golf. **Desvío del plan**, que pedía `primary` para "mejoró": el verde de `primary` no se lee sobre la pizarra verde. Provisional, a revisar con el grupo.
+Tendencia del índice (`Trend` y el delta "−0,7" del Inicio y de la ficha del golfista): bajar (mejorar) va en `trend-better` (verde) y subir (empeorar) en `trend-worse` (rojo), que es como se lee una flecha de tendencia. Decisión del dueño (2026-10-27): antes iba en `score-under`/`score-over` como un leaderboard de golf y la flecha que bajaba en rojo se leía como algo malo. Sobre la pizarra verde usan `board-better` (verde claro, L 0,85, 8,9:1) y `board-worse` (= `board-under`); la `Board` los redefine. La notación de golpes respecto del par no cambia: bajo par sigue en rojo de lapicera y sobre par en azul.
 
 Para lo que no lee CSS (theme-color, manifest, íconos, splash) los hex están en `src/lib/theme-colors.ts`, sacados de `pnpm contrast -- --json`.
 

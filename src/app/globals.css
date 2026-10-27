@@ -53,6 +53,11 @@
   --board-over: oklch(0.82 0.08 250);
   --score-under: var(--rojo);
   --score-over: var(--azul);
+  /* Tendencia del Hándicap Index: bajar es mejorar (verde), subir es empeorar (rojo). No es la notación de golpes. */
+  --trend-better: var(--pasto);
+  --trend-worse: var(--rojo);
+  --board-better: oklch(0.85 0.13 150);
+  --board-worse: var(--board-under);
   --warn: var(--ambar);
   --warn-foreground: oklch(0.3 0.06 75);
   --warn-ink: oklch(0.45 0.1 70);
@@ -107,6 +112,10 @@
   --board-over: oklch(0.76 0.11 258);
   --score-under: oklch(0.74 0.17 25);
   --score-over: oklch(0.76 0.11 258);
+  --trend-better: var(--primary);
+  --trend-worse: oklch(0.74 0.17 25);
+  --board-better: var(--primary);
+  --board-worse: var(--board-under);
   --warn: oklch(0.82 0.15 80);
   --warn-foreground: oklch(0.22 0.05 80);
   --warn-ink: oklch(0.84 0.14 80);
@@ -157,6 +166,8 @@
   --color-board-muted: var(--board-muted);
   --color-score-under: var(--score-under);
   --color-score-over: var(--score-over);
+  --color-trend-better: var(--trend-better);
+  --color-trend-worse: var(--trend-worse);
   --color-warn: var(--warn);
   --color-warn-foreground: var(--warn-foreground);
   --color-warn-ink: var(--warn-ink);

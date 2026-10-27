@@ -42,7 +42,7 @@ export function HomeView({ meId, firstName, handicap, groups, rounds, pending }:
             {delta != null && (
               <span className="inline-flex items-center gap-1 text-sm font-semibold">
                 <Trend delta={delta} />
-                <span className={delta < 0 ? "text-score-under" : delta > 0 ? "text-score-over" : "text-board-muted"}>
+                <span className={delta < 0 ? "text-trend-better" : delta > 0 ? "text-trend-worse" : "text-board-muted"}>
                   {delta === 0 ? "igual" : fmtDelta(delta)}
                 </span>
               </span>

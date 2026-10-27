@@ -68,7 +68,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
         {delta != null && (
           <p className="mb-2 inline-flex items-center gap-1 text-base font-semibold">
             <Trend delta={delta} />
-            <span className={delta < 0 ? "text-score-under" : delta > 0 ? "text-score-over" : "text-muted-foreground"}>{delta === 0 ? "igual" : fmtDelta(delta)}</span>
+            <span className={delta < 0 ? "text-trend-better" : delta > 0 ? "text-trend-worse" : "text-muted-foreground"}>{delta === 0 ? "igual" : fmtDelta(delta)}</span>
           </p>
         )}
       </section>
