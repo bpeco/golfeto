@@ -5,10 +5,13 @@ import type { Notation } from "./notation";
 
 /**
  * Tope de tokens de salida. Incluye el razonamiento (thinking adaptativo): con 4000 una tarjeta
- * con tachones y correcciones lo agotaba pensando y la respuesta volvía sin JSON.
- * 16000 es el máximo recomendado sin streaming.
+ * con tachones y correcciones lo agotaba pensando y la respuesta volvía sin JSON. Es un techo
+ * (se paga lo usado); lo que gasta es el razonamiento, y eso lo baja EFFORT.
  */
-const MAX_TOKENS = 16000;
+const MAX_TOKENS = 8000;
+
+/** Cuánto razona el modelo. "medium" alcanza para leer la tarjeta; el default de Sonnet 5 es "high". */
+const EFFORT = "medium";
 
 /** Devuelve la salida estructurada o falla con el motivo real (queda en el log de Vercel). */
 function parsedOrThrow<T>(res: { parsed_output: T | null; stop_reason: string | null; usage: { output_tokens: number } }): T {
@@ -75,7 +78,7 @@ export async function extractScorecard(
         ],
       },
     ],
-    output_config: { format: zodOutputFormat(scorecardExtractionSchema) },
+    output_config: { effort: EFFORT, format: zodOutputFormat(scorecardExtractionSchema) },
   });
 
   return parsedOrThrow(res);
@@ -128,7 +131,7 @@ export async function extractCourseCard(image: ImageInput): Promise<CourseCardEx
         ],
       },
     ],
-    output_config: { format: zodOutputFormat(courseCardSchema) },
+    output_config: { effort: EFFORT, format: zodOutputFormat(courseCardSchema) },
   });
   return parsedOrThrow(res);
 }
