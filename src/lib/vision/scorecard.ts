@@ -3,6 +3,22 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { anthropic, VISION_MODEL, type ImageInput } from "./client";
 import type { Notation } from "./notation";
 
+/**
+ * Tope de tokens de salida. Incluye el razonamiento (thinking adaptativo): con 4000 una tarjeta
+ * con tachones y correcciones lo agotaba pensando y la respuesta volvía sin JSON.
+ * 16000 es el máximo recomendado sin streaming.
+ */
+const MAX_TOKENS = 16000;
+
+/** Devuelve la salida estructurada o falla con el motivo real (queda en el log de Vercel). */
+function parsedOrThrow<T>(res: { parsed_output: T | null; stop_reason: string | null; usage: { output_tokens: number } }): T {
+  if (res.stop_reason === "refusal") throw new Error("El modelo no pudo procesar la imagen");
+  if (!res.parsed_output) {
+    throw new Error(`No se pudo interpretar la tarjeta (stop_reason=${res.stop_reason}, output_tokens=${res.usage.output_tokens})`);
+  }
+  return res.parsed_output;
+}
+
 export const scorecardExtractionSchema = z.object({
   rows: z.array(
     z.object({
@@ -34,7 +50,7 @@ export async function extractScorecard(
 ): Promise<ScorecardExtraction> {
   const res = await anthropic().messages.parse({
     model: VISION_MODEL,
-    max_tokens: 4000,
+    max_tokens: MAX_TOKENS,
     thinking: { type: "adaptive" },
     system: [
       "Sos un lector de tarjetas de golf argentinas escritas a mano.",
@@ -62,9 +78,7 @@ export async function extractScorecard(
     output_config: { format: zodOutputFormat(scorecardExtractionSchema) },
   });
 
-  if (res.stop_reason === "refusal") throw new Error("El modelo no pudo procesar la imagen");
-  if (!res.parsed_output) throw new Error("No se pudo interpretar la tarjeta");
-  return res.parsed_output;
+  return parsedOrThrow(res);
 }
 
 export const courseCardSchema = z.object({
@@ -97,7 +111,7 @@ export type CourseCardExtraction = z.infer<typeof courseCardSchema>;
 export async function extractCourseCard(image: ImageInput): Promise<CourseCardExtraction> {
   const res = await anthropic().messages.parse({
     model: VISION_MODEL,
-    max_tokens: 6000,
+    max_tokens: MAX_TOKENS,
     thinking: { type: "adaptive" },
     system: [
       "Sos un lector de tarjetas impresas de canchas de golf argentinas.",
@@ -116,7 +130,5 @@ export async function extractCourseCard(image: ImageInput): Promise<CourseCardEx
     ],
     output_config: { format: zodOutputFormat(courseCardSchema) },
   });
-  if (res.stop_reason === "refusal") throw new Error("El modelo no pudo procesar la imagen");
-  if (!res.parsed_output) throw new Error("No se pudo interpretar la tarjeta");
-  return res.parsed_output;
+  return parsedOrThrow(res);
 }
