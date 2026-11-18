@@ -17,7 +17,7 @@ Lo que una sesión nueva necesita saber para tocar el proyecto sin romper nada. 
 | Rama de producción hoy | `claude/vigilant-bardeen-6iwzid` (default del repo). Pendiente: mover a `main` |
 | Rama de trabajo de la sesión 2 | `claude/awesome-lovelace-6ooihh` (ya fusionada por fast-forward en producción) |
 | Rama del rediseño (sesión 3) | `claude/sleepy-wozniak-v86mqg` (fusionada por fast-forward en producción el 2026-09-25; versión anterior: `1924828`, deploy `dpl_5JZsaVjb4EYJrHjmbnoWerZbax3b`) |
-| Vercel | proyecto `golfeto` (`prj_r4pOTc4yzgWUJlUxhs0tt9ZgRf5K`), team `bautistapeco97-gmailcoms-projects`, framework Next.js, Node 22, Deployment Protection **desactivada** (la app tiene su propio login) |
+| Vercel | proyecto `golfeto` (`prj_r4pOTc4yzgWUJlUxhs0tt9ZgRf5K`), team `bautistapeco97-gmailcoms-projects`, framework Next.js, Node 22, Deployment Protection **desactivada** (la app tiene su propio login). **Funciones en `gru1` (São Paulo)** desde el 2026-11-18, por `regions` en `vercel.json`: al lado de Supabase. Antes corrían en `iad1` (el default) y cada consulta pagaba ~374 ms de red contra ~19 ms desde São Paulo (`docs/perf/2026-11-18-navegacion-lenta.md`). No volver a `iad1` sin mover la base |
 | Producción | https://golfeto.vercel.app |
 | Supabase | proyecto `ktklvnwprfxlcncrjdjj` (São Paulo). Conector MCP "Supabase Galf" apunta ahí |
 | Auth | Google OAuth (Google Cloud project "Galf", en modo *Testing*: solo los mails agregados como test users pueden entrar hasta apretar *Publish app*) |
